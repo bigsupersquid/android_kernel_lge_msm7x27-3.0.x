@@ -23,6 +23,8 @@
 #include "lge/board-pecan.h"
 #elif defined(CONFIG_MACH_MSM7X27_THUNDERG)
 #include "lge/board-thunderg.h"
+#elif defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#include "lge/board-thunderc.h"
 #elif defined(CONFIG_MACH_MSM7X27_UNIVA)
 #include "lge/board-univa.h"
 #else

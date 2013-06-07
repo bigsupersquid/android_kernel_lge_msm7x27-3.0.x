@@ -53,6 +53,8 @@ struct msm_ptbl_entry {
 /* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-06-15, increase max for fota */
 #if defined(CONFIG_MACH_MSM7X27_THUNDERG)
 #define MSM_MAX_PARTITIONS 11
+#elif defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#define MSM_MAX_PARTITIONS 9
 #else /* original */
 #define MSM_MAX_PARTITIONS 12
 #endif
