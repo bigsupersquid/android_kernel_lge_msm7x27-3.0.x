@@ -859,3 +859,4 @@ static void mddi_hitachi_lcd_panel_poweroff(void)
 	}
 }
 module_init(mddi_hitachi_lcd_init);
+

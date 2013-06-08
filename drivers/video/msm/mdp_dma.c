@@ -699,3 +699,4 @@ void mdp_refresh_screen(unsigned long data)
 			complete(&mfd->refresher_comp);
 	}
 }
+

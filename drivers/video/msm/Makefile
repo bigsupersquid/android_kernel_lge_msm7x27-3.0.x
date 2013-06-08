@@ -123,6 +123,7 @@ obj-$(CONFIG_FB_MSM_MDDI_QUICKVX) += mddi_quickvx.o
 obj-$(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) += mddi_hitachi_hvga.o
 obj-$(CONFIG_FB_MSM_MDDI_HITACHI_HVGA_GELATO) += mddi_hitachi_hvga_gelato.o
 obj-$(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) += mddi_novatek_hvga.o
+obj-$(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) += mddi_novatek_hvga.o mddi_hitachi_hvga.o
 endif
 
 ifeq ($(CONFIG_FB_MSM_MIPI_PANEL_DETECT),y)

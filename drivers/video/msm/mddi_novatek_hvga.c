@@ -784,3 +784,4 @@ static void mddi_novatek_lcd_panel_poweroff(void)
 	}
 }
 module_init(mddi_novatek_lcd_init);
+

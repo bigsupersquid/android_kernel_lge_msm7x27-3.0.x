@@ -35,7 +35,8 @@ do { \
 } while (0)
 
 static char *msm_fb_vreg[] = {
-	"gp1",
+//	"gp1",
+	"gp4",
 	"gp2",
 };
 */
