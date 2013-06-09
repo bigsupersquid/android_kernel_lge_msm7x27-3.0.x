@@ -53,6 +53,10 @@ static msm_fb_vsync_handler_type mddi_hitachi_vsync_handler = NULL;
 static void *mddi_hitachi_vsync_handler_arg;
 static uint16 mddi_hitachi_vsync_attempts;
 
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+extern int lge_lcd_panel;
+#endif
+
 #if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_THUNDERC) || defined(CONFIG_MACH_MSM7X27_THUNDERA)
 /* Define new structure named 'msm_panel_hitachi_pdata' to use LCD initialization Flag (initialized)
  * 2010-04-21, minjong.gong@lge.com
@@ -733,6 +737,16 @@ static int mddi_hitachi_lcd_init(void)
 	/* TODO: Check client id */
 
 #endif
+
+/* LGE_CHANGE [james.jang@lge.com] 2010-08-28, probe LCD */
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+  gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	 gpio_direction_input(101);
+  if (gpio_get_value(101) != 0)
+		return -ENODEV;
+	lge_lcd_panel = 0;
+#endif
+
 	ret = platform_driver_register(&this_driver);
 	if (!ret) {
 		pinfo = &hitachi_panel_data0.panel_info;

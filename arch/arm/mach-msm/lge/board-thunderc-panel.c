@@ -35,8 +35,8 @@ do { \
 } while (0)
 
 static char *msm_fb_vreg[] = {
-//	"gp1",
-	"gp4",
+	"gp1",
+//	"gp4",
 	"gp2",
 };
 */
@@ -208,6 +208,12 @@ static struct platform_device bl_i2c_device = {
 	.dev.platform_data = &bl_i2c_pdata,
 };
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+static struct aat28xx_platform_data aat2870bl_data = {
+	.gpio = 82,
+	.version = 2862,
+};
+#else
 static struct aat28xx_platform_data aat2870bl_data[] = {
 	[LGE_REV_B] = {
 		.gpio = 82,
@@ -238,7 +244,7 @@ static struct aat28xx_platform_data aat2870bl_data[] = {
 		.version = 2862,
 	}
 };
-
+#endif
 static struct i2c_board_info bl_i2c_bdinfo[] = {
 	[0] = {
 		I2C_BOARD_INFO("aat2870bl", 0x60),
@@ -255,7 +261,11 @@ struct device* thunderc_backlight_dev(void)
 void __init thunderc_init_i2c_backlight(int bus_num)
 {
 	bl_i2c_device.id = bus_num;
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	bl_i2c_bdinfo[0].platform_data = &aat2870bl_data,
+#else
 	bl_i2c_bdinfo[0].platform_data = &aat2870bl_data[lge_bd_rev];
+#endif
 	
 	init_gpio_i2c_pin(&bl_i2c_pdata, bl_i2c_pin[0],	&bl_i2c_bdinfo[0]);
 	i2c_register_board_info(bus_num, &bl_i2c_bdinfo[0], 1);
@@ -276,7 +286,7 @@ void __init lge_add_lcd_devices(void)
   }
   printk(KERN_ERR "%s: lge_lcd_panel : %d \n", __func__, lge_lcd_panel);      
 
-  platform_device_register(&mddi_novatek_panel_device);
+  	platform_device_register(&mddi_novatek_panel_device);
 	platform_device_register(&mddi_hitachi_panel_device);
 
 	msm_fb_add_devices();
