@@ -129,7 +129,6 @@ static void __init msm_fb_add_devices(void)
 
 int lge_lcd_panel = -1;
 
-
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-05-11, support the Sharp Panel (Novatek DDI) */
 static int mddi_novatek_pmic_backlight(int level)
 {
@@ -266,18 +265,18 @@ void __init thunderc_init_i2c_backlight(int bus_num)
 /* common functions */
 void __init lge_add_lcd_devices(void)
 {
-	gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	if(gpio_get_value(101))
-	{
-		lge_lcd_panel = 1;
-	}
-	else
-	{
-		lge_lcd_panel = 0;
-	}
-	printk(KERN_ERR "%s: lge_lcd_panel : %d \n", __func__, lge_lcd_panel);			
+  gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+  if(gpio_get_value(101))
+  {
+    lge_lcd_panel = 1;
+  }
+  else
+  {
+    lge_lcd_panel = 0;
+  }
+  printk(KERN_ERR "%s: lge_lcd_panel : %d \n", __func__, lge_lcd_panel);      
 
-	platform_device_register(&mddi_novatek_panel_device);
+  platform_device_register(&mddi_novatek_panel_device);
 	platform_device_register(&mddi_hitachi_panel_device);
 
 	msm_fb_add_devices();

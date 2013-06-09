@@ -86,7 +86,7 @@ extern void display_table_hitachi(struct display_table *table, unsigned int coun
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-05-20,
  * add code to prevent LCD shift
  */
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)
+#if (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)) || (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA))
 #define REGFLAG_END_OF_TABLE      0xFFFF   // END OF REGISTERS MARKER
 
 	struct display_table {
@@ -233,7 +233,7 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 	display_table_hitachi(mddi_hitachi_position_table, sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
 #endif
 
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)
+#if (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)) || (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA))
 	display_table_novatek(mddi_novatek_position_table,  sizeof(mddi_novatek_position_table) / sizeof(struct display_table));
 #endif
 
@@ -279,7 +279,7 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 		MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x01a0, mddi_ld_param);
 		MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x01a4,
 /* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
-#if defined (CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720)
+#if defined(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 			(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
 #else
 			(mddi_pkt_desc << 16) | mddi_vdo_packet_reg);
@@ -288,13 +288,13 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 		MDP_OUTP(MDP_BASE + 0x90010, (iBuf->dma_y << 16) | iBuf->dma_x);
 		MDP_OUTP(MDP_BASE + 0x00090, mddi_ld_param);
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-04-23, [LS670] fixed the pixel format */
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)
+#if (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)) || (defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA))
 		MDP_OUTP(MDP_BASE + 0x00094,
 			(0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
 #else /* original */
 		MDP_OUTP(MDP_BASE + 0x00094,
 /* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
-#if defined (CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720)
+#if defined(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 			(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
 #else
 			(mddi_pkt_desc << 16) | mddi_vdo_packet_reg);
