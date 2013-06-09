@@ -1,4 +1,4 @@
 #!/bin/sh
 adb reboot bootloader
-fastboot -c mem=471M console=ttyMSM2,115200n8 androidboot.hardware=thunderc -b 12200000 boot arch/arm/boot/zImage boot.img-ramdisk.gz
+fastboot -c 'mem=471M console=ttyMSM2,115200n8 androidboot.hardware=thunderc' -b 12200000 boot arch/arm/boot/zImage boot.img-ramdisk.gz
 
