@@ -33,13 +33,12 @@ do { \
 		(vreg_##op == vreg_enable) ? "vreg_enable" \
 			: "vreg_disable", name); \
 } while (0)
-
+*/
 static char *msm_fb_vreg[] = {
 //	"gp1",
 	"gp4",
 	"gp2",
 };
-*/
 
 static int mddi_power_save_on;
 static int msm_fb_mddi_power_save(int on)
@@ -49,14 +48,14 @@ static int msm_fb_mddi_power_save(int on)
 	static struct regulator *vreg_gp2;
 
 	if (!mddi_power_save_on) {
-		vreg_gp1 = regulator_get(0, "gp1");
+		vreg_gp1 = regulator_get(0, msm_fb_vreg[0]);
 		if (IS_ERR_OR_NULL(vreg_gp1)) {
 			pr_err("could not get vreg_gp1, rc = %ld\n",
 				PTR_ERR(vreg_gp1));
 			return -ENODEV;
 		}
 
-		vreg_gp2 = regulator_get(0, "gp2");
+		vreg_gp2 = regulator_get(0, msm_fb_vreg[1]);
 		if (IS_ERR_OR_NULL(vreg_gp2)) {
 			pr_err("could not get vreg_gp2, rc = %ld\n",
 				PTR_ERR(vreg_gp2));
@@ -122,6 +121,19 @@ static struct msm_panel_common_pdata mdp_pdata = {
 
 static void __init msm_fb_add_devices(void)
 {
+	/* 
+	------------------------------------
+	   |  Rev C     |  Rev 1.0
+	------------------------------------
+	VREG_GP1 | always off | +2.8V_LCD 
+	------------------------------------
+	VREG_GP2 | +2.8V_LCD  | +1.8V_HPVDD
+	------------------------------------
+	*/
+	if(lge_bd_rev >= 8) /* >= Rev 1.0 */
+		strcpy(msm_fb_vreg[1], "gp1");
+	  /* LGE_CHANGE_E [james.jang@lge.com] 2010-07-06 */
+	
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("pmdh", &mddi_pdata);
 	msm_fb_register_device("lcdc", 0);
@@ -204,48 +216,15 @@ static struct platform_device bl_i2c_device = {
 	.name	= "i2c-gpio",
 	.dev.platform_data = &bl_i2c_pdata,
 };
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
 static struct aat28xx_platform_data aat2870bl_data = {
 	.gpio = 82,
 	.version = 2862,
 };
-#else
-static struct aat28xx_platform_data aat2870bl_data[] = {
-	[LGE_REV_B] = {
-		.gpio = 82,
-		.version = 2870,
-	},
-	[LGE_REV_C] = {
-		.gpio = 82,
-		.version = 2862,
-	},
-	[LGE_REV_D] = {
-		.gpio = 82,
-		.version = 2862,
-	},
-	[LGE_REV_E] = {
-		.gpio = 82,
-		.version = 2862,
-	},
-	[LGE_REV_F] = {
-		.gpio = 82,
-		.version = 2862,
-	},
-	[LGE_REV_10] = {
-		.gpio = 82,
-		.version = 2862,
-	},
-	[LGE_REV_11] = {
-		.gpio = 82,
-		.version = 2862,
-	}
-};
-#endif
 static struct i2c_board_info bl_i2c_bdinfo[] = {
 	[0] = {
 		I2C_BOARD_INFO("aat2870bl", 0x60),
 		.type = "aat2870bl",
-		.platform_data = NULL,
+		.platform_data = &aat2870bl_data,
 	},
 };
 
@@ -257,11 +236,7 @@ struct device* thunderc_backlight_dev(void)
 void __init thunderc_init_i2c_backlight(int bus_num)
 {
 	bl_i2c_device.id = bus_num;
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
 	bl_i2c_bdinfo[0].platform_data = &aat2870bl_data;
-#else
-	bl_i2c_bdinfo[0].platform_data = &aat2870bl_data[lge_bd_rev];
-#endif	
 	init_gpio_i2c_pin(&bl_i2c_pdata, bl_i2c_pin[0],	&bl_i2c_bdinfo[0]);
 	i2c_register_board_info(bus_num, &bl_i2c_bdinfo[0], 1);
 	platform_device_register(&bl_i2c_device);
