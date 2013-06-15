@@ -31,7 +31,6 @@
 #include <mach/board_lge.h>
 #include <mach/msm_rpcrouter.h>
 #include "board-thunderc.h"
-
 static u32 thunderc_battery_capacity(u32 current_soc)
 {
 	if(current_soc > 100)
@@ -42,11 +41,7 @@ static u32 thunderc_battery_capacity(u32 current_soc)
 
 static struct msm_psy_batt_pdata msm_psy_batt_data = {
 	.voltage_min_design     = 3200,
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC_SPRINT)
 	.voltage_max_design     = 4250,
-#else
-	.voltage_max_design     = 4200,
-#endif
 	.avail_chg_sources      = AC_CHG | USB_CHG ,
 	.batt_technology        = POWER_SUPPLY_TECHNOLOGY_LION,
 	.calculate_capacity		= thunderc_battery_capacity,
@@ -71,11 +66,7 @@ static struct platform_device msm_batt_device = {
 #define GPMN_N_DEFAULT			4500
 /* default duty cycle = disable motor ic */
 #define GPMN_D_DEFAULT			(GPMN_N_DEFAULT >> 1) 
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC_SPRINT)
 #define PWM_MAX_HALF_DUTY		((GPMN_N_DEFAULT >> 1) - 80) /* minimum operating spec. should be checked */
-#else
-#define PWM_MAX_HALF_DUTY		((GPMN_N_DEFAULT >> 1) - 60) /* minimum operating spec. should be checked */
-#endif
 
 #define GPMN_M_MASK				0x01FF
 #define GPMN_N_MASK				0x1FFF
@@ -185,6 +176,8 @@ static struct platform_device msm_device_pmic_leds = {
 	.dev.platform_data = "button-backlight",
 };
 
++// LGE_CHANGE [dojip.kim@lge.com] 2010-07-02, 
++// retry to set the power because sometimes that failed
 int thunderc_vibrator_power_set(int enable)
 {
 	static int is_enabled = 0;
@@ -194,8 +187,8 @@ int thunderc_vibrator_power_set(int enable)
 	int en = !!enable;
 
 	if (dev==NULL) {
-		printk(KERN_ERR "%s: backlight devive get failed\n", __FUNCTION__);
-		return -1;
+	printk(KERN_ERR "%s: backlight device get failed\n", __FUNCTION__);
+	return -1;
 	}
 
 	if (en == is_enabled)
@@ -225,29 +218,18 @@ int thunderc_vibrator_pwm_set(int enable, int amp)
 {
 	int gain = ((PWM_MAX_HALF_DUTY*amp) >> 7)+ GPMN_D_DEFAULT;
 
+	REG_WRITEL((GPMN_M_DEFAULT & GPMN_M_MASK), GP_MN_CLK_MDIV_REG);
+	REG_WRITEL((~( GPMN_N_DEFAULT - GPMN_M_DEFAULT )&GPMN_N_MASK), GP_MN_CLK_NDIV_REG);
+	REG_WRITEL((gain & GPMN_D_MASK), GP_MN_CLK_DUTY_REG);
 	if (enable) {
-		// LGE_CHANGE [dojip.kim@lge.com] 2010-07-21, pwm sleep (from MS690)
-		REG_WRITEL((GPMN_M_DEFAULT & GPMN_M_MASK), GP_MN_CLK_MDIV_REG);
-		REG_WRITEL((~( GPMN_N_DEFAULT - GPMN_M_DEFAULT )&GPMN_N_MASK), GP_MN_CLK_NDIV_REG);
-		REG_WRITEL((gain & GPMN_D_MASK), GP_MN_CLK_DUTY_REG);
-
-		/* LGE_CHANGE [dojip.kim@lge.com] 2010-06-12, GP_MN */
 		gpio_tlmm_config(GPIO_CFG(GPIO_LIN_MOTOR_PWM,1,GPIO_CFG_OUTPUT,
-					  GPIO_CFG_PULL_DOWN,GPIO_CFG_2MA),GPIO_CFG_ENABLE);
-		REG_WRITEL((gain & GPMN_D_MASK), GP_MN_CLK_DUTY_REG);
+	      GPIO_CFG_PULL_DOWN,GPIO_CFG_2MA),GPIO_CFG_ENABLE);
+	REG_WRITEL((gain & GPMN_D_MASK), GP_MN_CLK_DUTY_REG);
 	} else {
-		// LGE_CHANGE [dojip.kim@lge.com] 2010-07-21, pwm sleep (from MS690)
-		REG_WRITEL(0x00, GP_MN_CLK_MDIV_REG);
-		REG_WRITEL(0x1000, GP_MN_CLK_NDIV_REG);
-		REG_WRITEL(0x1FFF, GP_MN_CLK_DUTY_REG);
-
-		REG_WRITEL(GPMN_D_DEFAULT, GP_MN_CLK_DUTY_REG);
-		/* LGE_CHANGE [dojip.kim@lge.com] 2010-06-12, GPIO */
-		gpio_tlmm_config(GPIO_CFG(GPIO_LIN_MOTOR_PWM,0,GPIO_CFG_OUTPUT,
-					  GPIO_CFG_PULL_DOWN,GPIO_CFG_2MA),GPIO_CFG_ENABLE);
-		gpio_direction_output(GPIO_LIN_MOTOR_PWM, 0);
+	REG_WRITEL(GPMN_D_DEFAULT, GP_MN_CLK_DUTY_REG);
+	gpio_tlmm_config(GPIO_CFG(GPIO_LIN_MOTOR_PWM,0,GPIO_CFG_OUTPUT,
+	        GPIO_CFG_PULL_DOWN,GPIO_CFG_2MA),GPIO_CFG_ENABLE);
 	}
-	
 	return 0;
 }
 
