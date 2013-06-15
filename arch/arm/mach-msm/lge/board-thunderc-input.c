@@ -71,9 +71,6 @@ static struct platform_device hs_device = {
 	},
 };
 
-static unsigned int keypad_row_gpios[] = {
-	32, 33, 36
-};
 static unsigned int keypad_row_gpios[] = { 32, 33, 34 };
 static unsigned int keypad_col_gpios[] = { 38, 37,36 };
 #define KEYMAP_INDEX(row, col) ((row)*ARRAY_SIZE(keypad_col_gpios) + (col))
