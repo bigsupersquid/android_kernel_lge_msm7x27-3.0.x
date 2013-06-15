@@ -727,7 +727,7 @@ static u32 thunder_lut_camera[256] = {
        0x00F2FCEE, 0x00F3FDEF, 0x00F4FEF0, 0x00F5FFF1, 0x00F6FFF2, 0x00F7FFF3, 0x00F8FFF4, 0x00F9FFF5,
        0x00FAFFF6, 0x00FBFFF7, 0x00FDFFF8, 0x00FEFFF8, 0x00FFFFF9, 0x00FFFFFA, 0x00FFFFFB, 0x00FFFFFC
  };
-
+#endif
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
 /* 0x00 RR BB GG */
 static u32 thunder_lut_normal_novatek[256] = {
@@ -831,7 +831,7 @@ void mdp_load_thunder_lut(int lut_type)
 		{
 /* LGE_CHANGE [james.jang@lge.com] 2010-09-06 */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)		
-			if (g_mddi_lcd_probe == 0) { /* Hitachi LCD */
+			if (lge_lcd_probe == 0) { /* Hitachi LCD */
 				for(i=0;i<256;i++) {
 					outpdw(MDP_BASE + 0x93800 + i*4, thunder_lut_normal[i]); 
 				}
@@ -855,7 +855,7 @@ void mdp_load_thunder_lut(int lut_type)
 		{
 /* LGE_CHANGE [james.jang@lge.com] 2010-09-06 */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)		
-			if (g_mddi_lcd_probe == 0) { /* Hitachi LCD */
+			if (lge_lcd_probe == 0) { /* Hitachi LCD */
 				for(i=0;i<256;i++) {
 					outpdw(MDP_BASE + 0x93800 + i*4, thunder_lut_camera[i]); 
 				}
