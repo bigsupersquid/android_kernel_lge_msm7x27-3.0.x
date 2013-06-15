@@ -46,6 +46,10 @@ int mdp_vsync_usec_wait_line_too_short = 5;
 uint32 mdp_dma2_update_time_in_usec;
 uint32 mdp_total_vdopkts;
 
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+int lge_lcd_probe = 0;
+#endif
+
 extern u32 msm_fb_debug_enabled;
 extern struct workqueue_struct *mdp_dma_wq;
 
@@ -291,13 +295,23 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)
 		MDP_OUTP(MDP_BASE + 0x00094,
 			(0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
+#elif defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+	if(lge_lcd_probe == 1){
+		MDP_OUTP(MDP_BASE + 0x00094, (0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
+			 }
+	else{
+		MDP_OUTP(MDP_BASE + 0x00094,(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
+	/* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
+	}
 #else /* original */
 		MDP_OUTP(MDP_BASE + 0x00094,
 /* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
 #if defined (CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720)
 			(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
 #else
+#if !defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 			(mddi_pkt_desc << 16) | mddi_vdo_packet_reg);
+#endif //(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 #endif
 #endif
 
