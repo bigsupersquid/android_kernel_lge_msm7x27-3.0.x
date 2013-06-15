@@ -100,8 +100,7 @@ struct hci_conn *hci_le_connect(struct hci_dev *hdev, __u16 pkt_type,
 	le->type = LE_LINK;
 
 	memset(&cp, 0, sizeof(cp));
-//temp	if (l2cap_sock_le_params_valid(le_params)) {
-	if (0) {
+	if (l2cap_sock_le_params_valid(le_params)) {
 		cp.supervision_timeout =
 				cpu_to_le16(le_params->supervision_timeout);
 		cp.scan_interval = cpu_to_le16(le_params->scan_interval);
