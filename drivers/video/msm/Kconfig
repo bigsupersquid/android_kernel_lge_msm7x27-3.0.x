@@ -564,7 +564,7 @@ config FB_MSM_MDDI_HITACHI_HVGA_LCD_WORKAROUND
 
 # P690 Dsiplay Driver config start
 config FB_MSM_MDDI_HITACHI_HVGA_GELATO
-       bool "MDDI HITACHI HVGA Panel"
+       bool "MDDI HITACHI HVGA Panel for Gelato"
        select FB_MSM_MDDI
        ---help---
          Support for MDDI HITACHI HVGA(320x480) Panel. 
