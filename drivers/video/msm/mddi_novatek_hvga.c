@@ -598,7 +598,7 @@ EXPORT_SYMBOL(mddi_novatek_position);
 #endif
 #if defined(CONFIG_MACH_MSM7X27_THUNDERC)
 //LGSI_LS670_FroyoToGB_CTS Issue Merges_Suresh_28May2011
-DEVICE_ATTR(lcd_onoff, 0665, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
+DEVICE_ATTR(lcd_onoff_novatek, 0665, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
 #else
 //LGSI_P505_US_ATnT_UI_08092011_Deepthi_Start CTS FilePermission Issue
 //DEVICE_ATTR(lcd_onoff_novatek, 0666, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
