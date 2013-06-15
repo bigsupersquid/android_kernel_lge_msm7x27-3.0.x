@@ -76,8 +76,8 @@ static unsigned int keypad_col_gpios[] = { 38, 37,36 };
 #define KEYMAP_INDEX(row, col) ((row)*ARRAY_SIZE(keypad_col_gpios) + (col))
 
 static const unsigned short keypad_keymap_thunder[9] = {
-    [KEYMAP_INDEX(0, 0)] = KEY_HOME, //swap these two
-    [KEYMAP_INDEX(0, 1)] = KEY_MENU, //for LS670
+    [KEYMAP_INDEX(0, 0)] = KEY_MENU, //swap these two
+    [KEYMAP_INDEX(0, 1)] = KEY_HOME, //for LS670
 	[KEYMAP_INDEX(0, 2)] = KEY_VOLUMEUP,
 	[KEYMAP_INDEX(1, 0)] = KEY_SEARCH,
 	[KEYMAP_INDEX(1, 1)] = KEY_BACK,
