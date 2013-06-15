@@ -176,8 +176,8 @@ static struct platform_device msm_device_pmic_leds = {
 	.dev.platform_data = "button-backlight",
 };
 
-+// LGE_CHANGE [dojip.kim@lge.com] 2010-07-02, 
-+// retry to set the power because sometimes that failed
+// LGE_CHANGE [dojip.kim@lge.com] 2010-07-02, 
+// retry to set the power because sometimes that failed
 int thunderc_vibrator_power_set(int enable)
 {
 	static int is_enabled = 0;
