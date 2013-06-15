@@ -63,7 +63,12 @@ static int msm_fb_mddi_power_save(int on)
 			return -ENODEV;
 		}
 
-		rc = regulator_set_voltage(vreg_gp1, 1800000, 1800000);
+ 		//rc = regulator_set_voltage(vreg_gp1, 1800000, 1800000);
+		rc = regulator_set_voltage(vreg_gp1, 2600000, 2600000);
+		/*because dmesg says
+		regulator_check_voltage: ldo10: requested voltage range [1800000, 1800000]
+		does not fit within constraints: [2600000, 2600000]
+		*/
 		if (rc) {
 			pr_err("set_voltage vreg_gp1 failed, rc=%d\n", rc);
 			regulator_put(vreg_gp1);
