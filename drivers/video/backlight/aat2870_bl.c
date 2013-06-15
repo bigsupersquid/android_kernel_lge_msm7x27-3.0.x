@@ -38,6 +38,11 @@
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+/* LGE_CHANGE [james.jang@lge.com] 2010-12-27, prove LCD */
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+extern void lge_probe_lcd(void);
+extern int lge_lcd_panel;
+#endif
 
 /********************************************
  * Definition
@@ -49,7 +54,16 @@
 /* 18.0, 18.9, 19.8, 20.7, 21.6, 22.5, 23.4, 24.3, 25.2, 26.1, */
 /* 27.0, 27.9 */
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+/* LGE_CHANGE,
+  * Change the maximum brightness to reduce current consumption at MR version.
+  * Before : 21 step(20.32mA), After : 16 step(15.48mA)
+  * 2010.10.06, minjong.gong@lge.com
+  */
+#define LCD_LED_MAX 17 /* 16.45mA */
+#else
 #define LCD_LED_MAX 21 /* 20.32mA */
+#endif
 #define LCD_LED_MIN 0  /* 0.48mA */
 #define DEFAULT_BRIGHTNESS 13
 #define AAT28XX_LDO_NUM 4
@@ -155,9 +169,19 @@ module_param(debug, uint, 0644);
 
 /* Set to Normal mode */
 static struct aat28xx_ctrl_tbl aat2862bl_normal_tbl[] = {
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	/* LGE_CHANGE. 
+	 * Change register value to do not turn on the bakclight at operatoin mode setting. (0xF2 -> 0xD2)
+	 * 2010-07-31. minjong.gong@lge.com 
+	 */
+//LG_CHANGE [panchaxari.t@lge.com] 2011-10-12 , LCD brightness [START]	 
+	{ 0x03, 0xF2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),  Brightness=Default (0x12, 13th setp)*/
+//LG_CHANGE [panchaxari.t@lge.com] 2011-10-12 , LCD brightness [START]	
+#else
 /* LGE_UPDATE_S kideok.kim@lge.com 20101020*/
 	 { 0x03, 0xD2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),	Brightness=Default (0x12, 13th setp)*/
 //	 { 0x03, 0xF2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),	Brightness=Default (0x12, 13th setp)*/
+#endif
 	{ 0xFF, 0xFE }	 /* end of command */
 };
 
@@ -960,7 +984,21 @@ static int __init aat28xx_probe(struct i2c_client *i2c_dev, const struct i2c_dev
 
 	drvdata->client = i2c_dev;
 	drvdata->gpio = pdata->gpio;
+
+/* LGE_CHANGE [james.jang@lge.com] 2010-12-27, prove LCD */
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+	lge_probe_lcd();
+
+	if (lge_probe_lcd == 0) { /* Hitachi LCD */
+		drvdata->max_intensity = 19; // 21;
+	}
+	else { /* Novatek LCD */
+		drvdata->max_intensity = 17;
+	}  
+#else
 	drvdata->max_intensity = LCD_LED_MAX;
+#endif
+
 	if (pdata->max_current > 0)
 		drvdata->max_intensity = pdata->max_current;
 	drvdata->intensity = LCD_LED_MIN;
