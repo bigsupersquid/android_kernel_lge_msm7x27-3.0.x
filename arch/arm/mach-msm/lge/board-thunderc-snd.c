@@ -31,6 +31,7 @@ static struct snd_endpoint snd_endpoints_list[] = {
 	SND(BT, 12),
 	SND(IN_S_SADC_OUT_HANDSET, 16),
 	SND(IN_S_SADC_OUT_SPEAKER_PHONE, 25),
+	SND(CURRENT, 27),
 #else
 /* LGE_CHANGE_S, [junyoub.an] , 2010-02-12, Define sound device*/
 	SND(HANDSET_LOOPBACK,5),
