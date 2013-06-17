@@ -67,7 +67,11 @@
 #define BATTERY_CB_ID_ALL_ACTIV		1
 #define BATTERY_CB_ID_LOW_VOL		2
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#define BATTERY_LOW            	2800
+#else
 #define BATTERY_LOW		3200
+#endif
 #define BATTERY_HIGH		4300
 
 #define ONCRPC_CHG_GET_GENERAL_STATUS_PROC	12
@@ -1853,7 +1857,11 @@ static int __devinit msm_batt_init_rpc(void)
 #else
 
 	msm_batt_info.chg_ep =
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+		msm_rpc_connect_compatible(CHG_RPC_PROG, CHG_RPC_VER_2_2, 0);
+#else
 		msm_rpc_connect_compatible(CHG_RPC_PROG, CHG_RPC_VER_4_1, 0);
+#endif
 	msm_batt_info.chg_api_version =  CHG_RPC_VER_4_1;
 	if (msm_batt_info.chg_ep == NULL) {
 		pr_err("%s: rpc connect CHG_RPC_PROG = NULL\n", __func__);
@@ -1862,7 +1870,11 @@ static int __devinit msm_batt_init_rpc(void)
 
 	if (IS_ERR(msm_batt_info.chg_ep)) {
 		msm_batt_info.chg_ep = msm_rpc_connect_compatible(
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+				CHG_RPC_PROG, CHG_RPC_VER_1_1, 0);
+#else
 				CHG_RPC_PROG, CHG_RPC_VER_3_1, 0);
+#endif
 		msm_batt_info.chg_api_version =  CHG_RPC_VER_3_1;
 	}
 	if (IS_ERR(msm_batt_info.chg_ep)) {
@@ -1900,7 +1912,11 @@ static int __devinit msm_batt_init_rpc(void)
 
 	msm_batt_info.batt_client =
 		msm_rpc_register_client("battery", BATTERY_RPC_PROG,
-					BATTERY_RPC_VER_4_1,
+	#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+					BATTERY_RPC_VER_2_1,
+#else
+				BATTERY_RPC_VER_4_1,
+#endif
 					1, msm_batt_cb_func);
 
 	if (msm_batt_info.batt_client == NULL) {
