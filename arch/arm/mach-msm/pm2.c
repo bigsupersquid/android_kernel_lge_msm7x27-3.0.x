@@ -1790,10 +1790,8 @@ static void msm_pm_restart(char str, const char *cmd)
 		copy_addr = lge_get_fb_copy_virt_addr();
 		*((unsigned *)copy_addr) = restart_reason;
 
-/* temp block
 		rc_buffer = (unsigned int *)get_ram_console_buffer();
 		*rc_buffer = 0x0;
-end temp block */
 
 		spin_lock_irqsave(&state_lock, irqflags);
 		/*
