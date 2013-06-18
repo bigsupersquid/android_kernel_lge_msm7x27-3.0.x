@@ -590,11 +590,16 @@ static void aat28xx_poweroff(struct aat28xx_driver_data *drvdata)
 		drvdata->state = POWEROFF_STATE;
 		return;
 	}
-
-	gpio_tlmm_config(GPIO_CFG(drvdata->gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	gpio_direction_output(drvdata->gpio, 0);
-	mdelay(6);
-	drvdata->state = POWEROFF_STATE;
+	if ((gpio_request(drvdata->gpio, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(drvdata->gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_output(drvdata->gpio, 0);
+		mdelay(6);
+		drvdata->state = POWEROFF_STATE;
+		gpio_free(drvdata->gpio);
+	}
+	//else
+	//print kernel error
 }
 #endif
 
@@ -989,7 +994,7 @@ static int __init aat28xx_probe(struct i2c_client *i2c_dev, const struct i2c_dev
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 	lge_probe_lcd();
 
-	if (lge_lcd_probe == 0) { /* Hitachi LCD */
+	if (lge_probe_lcd == 0) { /* Hitachi LCD */
 		drvdata->max_intensity = 19; // 21;
 	}
 	else { /* Novatek LCD */
@@ -1129,3 +1134,4 @@ module_exit(aat28xx_exit);
 MODULE_DESCRIPTION("Backlight driver for ANALOGIC TECH AAT28XX");
 MODULE_AUTHOR("Munyoung Hwang <munyoung.hwang@lge.com>");
 MODULE_LICENSE("GPL");
+

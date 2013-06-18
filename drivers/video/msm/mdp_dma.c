@@ -32,6 +32,11 @@
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mddihost.h"
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+#include <asm/gpio.h>
+int lge_lcd_probe = 0;
+#endif
+
 
 static uint32 mdp_last_dma2_update_width;
 static uint32 mdp_last_dma2_update_height;
@@ -45,10 +50,6 @@ int mdp_lcd_rd_cnt_offset_fast = 20;
 int mdp_vsync_usec_wait_line_too_short = 5;
 uint32 mdp_dma2_update_time_in_usec;
 uint32 mdp_total_vdopkts;
-
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
-int lge_lcd_probe = 0;
-#endif
 
 extern u32 msm_fb_debug_enabled;
 extern struct workqueue_struct *mdp_dma_wq;
@@ -296,6 +297,16 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 		MDP_OUTP(MDP_BASE + 0x00094,
 			(0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
 #elif defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_input(101);
+		lge_lcd_probe = gpio_get_value(101);
+		gpio_free(101);
+	}
+	else 
+		printk(KERN_INFO "GPIO 101 allocation failure.\n");
+
 	if(lge_lcd_probe == 1){
 		MDP_OUTP(MDP_BASE + 0x00094, (0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
 			 }

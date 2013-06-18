@@ -750,11 +750,15 @@ static int mddi_hitachi_lcd_init(void)
 
 /* LGE_CHANGE [james.jang@lge.com] 2010-08-28, probe LCD */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
-  gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	 gpio_direction_input(101);
-  if (gpio_get_value(101) != 0)
-		return -ENODEV;
-	lge_lcd_probe = 0;
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_input(101);
+		lge_lcd_probe = gpio_get_value(101);
+		gpio_free(101);
+	}
+	else 
+		printk(KERN_INFO "GPIO 101 allocation failure.\n");
 #endif
 
 	ret = platform_driver_register(&this_driver);

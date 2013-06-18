@@ -811,11 +811,14 @@ void mdp_load_thunder_lut(int lut_type)
 {
 	int i=0;
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
-	gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	if(gpio_get_value(101))
-		lge_lcd_probe = 1; //Novatek
-	else
-		lge_lcd_probe = 0; //Hitachi
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		lge_lcd_probe = gpio_get_value(101);  //	0: Hitachi 1:Novatek
+	gpio_free(101);
+	}
+	//else 
+	// print kernel error
 #endif //(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
 
 	/* Prevent changing lut if mdp clk is off */
@@ -1051,12 +1054,18 @@ extern int gelato_panel_id;
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 void lge_probe_lcd(void)
 {
-  gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	gpio_direction_input(101);
-  if (gpio_get_value(101) == 0)
-		lge_lcd_probe = 0; /* Hitachi LCD */
-	else
-		lge_lcd_probe = 1; /* Novatek LCD */
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_input(101);
+		if (gpio_get_value(101) == 0)
+			lge_lcd_probe = 0; /* Hitachi LCD */
+		else
+			lge_lcd_probe = 1; /* Novatek LCD */
+	gpio_free(101);
+	}
+	//else
+	// print kernel error
 }
 #endif
 
