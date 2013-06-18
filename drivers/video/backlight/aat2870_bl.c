@@ -41,7 +41,7 @@
 /* LGE_CHANGE [james.jang@lge.com] 2010-12-27, prove LCD */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 extern void lge_probe_lcd(void);
-extern int lge_lcd_panel;
+extern int lge_lcd_probe;
 #endif
 
 /********************************************
@@ -989,7 +989,7 @@ static int __init aat28xx_probe(struct i2c_client *i2c_dev, const struct i2c_dev
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 	lge_probe_lcd();
 
-	if (lge_lcd_panel == 0) { /* Hitachi LCD */
+	if (lge_lcd_probe == 0) { /* Hitachi LCD */
 		drvdata->max_intensity = 19; // 21;
 	}
 	else { /* Novatek LCD */
