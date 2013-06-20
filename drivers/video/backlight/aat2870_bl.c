@@ -39,10 +39,6 @@
 #include <linux/earlysuspend.h>
 #endif
 /* LGE_CHANGE [james.jang@lge.com] 2010-12-27, prove LCD */
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
-extern void lge_probe_lcd(void);
-extern int lge_lcd_probe;
-#endif
 
 /********************************************
  * Definition
@@ -54,7 +50,7 @@ extern int lge_lcd_probe;
 /* 18.0, 18.9, 19.8, 20.7, 21.6, 22.5, 23.4, 24.3, 25.2, 26.1, */
 /* 27.0, 27.9 */
 
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#if 0 //defined(CONFIG_MACH_MSM7X27_THUNDERC)
 /* LGE_CHANGE,
   * Change the maximum brightness to reduce current consumption at MR version.
   * Before : 21 step(20.32mA), After : 16 step(15.48mA)
@@ -990,19 +986,7 @@ static int __init aat28xx_probe(struct i2c_client *i2c_dev, const struct i2c_dev
 	drvdata->client = i2c_dev;
 	drvdata->gpio = pdata->gpio;
 
-/* LGE_CHANGE [james.jang@lge.com] 2010-12-27, prove LCD */
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
-	lge_probe_lcd();
-
-	if (lge_probe_lcd == 0) { /* Hitachi LCD */
-		drvdata->max_intensity = 19; // 21;
-	}
-	else { /* Novatek LCD */
-		drvdata->max_intensity = 17;
-	}  
-#else
 	drvdata->max_intensity = LCD_LED_MAX;
-#endif
 
 	if (pdata->max_current > 0)
 		drvdata->max_intensity = pdata->max_current;
