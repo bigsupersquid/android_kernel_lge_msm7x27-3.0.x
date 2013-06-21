@@ -51,6 +51,7 @@
 #define CHG_RPC_PROG		0x3000001a
 #define CHG_RPC_VER_1_1		0x00010001
 #define CHG_RPC_VER_1_3		0x00010003
+#define CHG_RPC_VER_1_4		0x00010004
 #define CHG_RPC_VER_2_2		0x00020002
 #define CHG_RPC_VER_3_1         0x00030001
 #define CHG_RPC_VER_4_1         0x00040001
@@ -68,16 +69,21 @@
 #define BATTERY_CB_ID_LOW_VOL		2
 
 #if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-#define BATTERY_LOW            	2800
+#define BATTERY_LOW         2800
+#define BATTERY_HIGH		4200
 #else
 #define BATTERY_LOW		3200
-#endif
 #define BATTERY_HIGH		4300
+#endif
 
 #define ONCRPC_CHG_GET_GENERAL_STATUS_PROC	12
 #define ONCRPC_CHARGER_API_VERSIONS_PROC	0xffffffff
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#define BATT_RPC_TIMEOUT    10000	/* 10 sec */
+#else
 #define BATT_RPC_TIMEOUT    5000	/* 5 sec */
+#endif
 
 #define INVALID_BATT_HANDLE    -1
 
@@ -1912,8 +1918,8 @@ static int __devinit msm_batt_init_rpc(void)
 
 	msm_batt_info.batt_client =
 		msm_rpc_register_client("battery", BATTERY_RPC_PROG,
-	#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-					BATTERY_RPC_VER_2_1,
+	#if 0 //defined(CONFIG_MACH_MSM7X27_THUNDERC)
+					BATTERY_RPC_VER_1_1,
 #else
 				BATTERY_RPC_VER_4_1,
 #endif
