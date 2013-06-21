@@ -1,7 +1,7 @@
 #include <linux/module.h>
 #include <linux/delay.h>
-#include <lg_diagcmd.h>
-#include <lg_diag_keypress.h>
+#include <mach/lg_diagcmd.h>
+#include <mach/lg_diag_keypress.h>
 #include <linux/input.h>
 #include <mach/gpio.h>
 /*==========================================================================*/

@@ -1,9 +1,9 @@
 #include <linux/module.h>
-#include <lg_diagcmd.h>
+#include <mach/lg_diagcmd.h>
 #include <linux/input.h>
 #include <linux/syscalls.h>
 
-#include <lg_diag_unifiedmsgtool.h>
+#include <mach/lg_diag_unifiedmsgtool.h>
 /*ADD 0011452: Noice cancellation check support for testmode*/
 #include <mach/qdsp5v2/audio_def.h>
 #include <linux/delay.h>

@@ -16,9 +16,9 @@
 #include <linux/module.h>
 #include <linux/fcntl.h> 
 #include <linux/fs.h>
-#include <lg_diagcmd.h>
+#include <mach/lg_diagcmd.h>
 #include <linux/uaccess.h>
-#include <lge_diag_eri.h>
+#include <mach/lge_diag_eri.h>
 
 
 #include <linux/syscalls.h>

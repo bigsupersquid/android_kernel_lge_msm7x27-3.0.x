@@ -628,20 +628,35 @@ mtc_user_table_entry_type mtc_mstr_tbl[MTC_MSTR_TBL_SIZE] =
 	{ MTC_TOUCH_REQ_CMD				,mtc_execute					, MTC_ARM11_PROCESSOR},
 #if defined (CONFIG_MACH_MSM7X27_THUNDERC) || defined (LG_FW_ATS_ETA_MTC_KEY_LOGGING)
 	{ MTC_LOGGING_MASK_REQ_CMD		,mtc_logging_mask_req_proc		, MTC_ARM11_PROCESSOR},
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	{ MTC_LOG_REQ_CMD					,NULL					, MTC_ARM11_PROCESSOR}, /*mtc_send_key_log_data*/#else
 	{ MTC_LOG_REQ_CMD					,mtc_null_rsp					, MTC_ARM11_PROCESSOR}, /*mtc_send_key_log_data*/
+#endif
 #endif /*LG_FW_ATS_ETA_MTC_KEY_LOGGING*/
 	{ MTC_SERIALIZED_DATA_REQ_CMD		,mtc_serialized_data_req_proc	, MTC_ARM11_PROCESSOR},
 	{ MTC_SERIALIZED_CAPTURE_REQ_CMD 	,mtc_serialized_capture_req_proc, MTC_ARM11_PROCESSOR},
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	{ MTC_PHONE_RESTART_REQ_CMD		,NULL					, MTC_ARM9_PROCESSOR},
+#else
 	{ MTC_PHONE_RESTART_REQ_CMD		,mtc_null_rsp					, MTC_ARM9_PROCESSOR},
+#endif
 	{ MTC_FACTORY_RESET				,mtc_null_rsp					, MTC_ARM9_ARM11_BOTH},
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	{ MTC_PHONE_REPORT					,NULL					, MTC_ARM9_PROCESSOR},
+#else
 	{ MTC_PHONE_REPORT					,mtc_null_rsp					, MTC_ARM9_PROCESSOR},
+#endif
 	{ MTC_PHONE_STATE					,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_CAPTURE_PROP					,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_NOTIFICATION_REQUEST			,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_CUR_PROC_NAME_REQ_CMD		,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_KEY_EVENT_UNIV_REQ_CMD		,mtc_null_rsp					, MTC_NOT_SUPPORTED}, /*ETA command*/
 	{ MTC_MEMORY_DUMP					,mtc_null_rsp					, MTC_NOT_SUPPORTED},
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	{ MTC_BATTERY_POWER				,NULL					, MTC_ARM9_PROCESSOR},
+#else
 	{ MTC_BATTERY_POWER				,mtc_null_rsp					, MTC_ARM9_PROCESSOR},
+#endif
 	{ MTC_BACKLIGHT_INFO				,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_FLASH_MODE					,mtc_null_rsp					, MTC_NOT_SUPPORTED},
 	{ MTC_MODEM_MODE					,mtc_null_rsp					, MTC_NOT_SUPPORTED},

@@ -7,10 +7,10 @@
 */
 /* ==========================================================================*/
 #include <linux/module.h>
-#include <lg_diag_screen_shot.h>
+#include <mach/lg_diag_screen_shot.h>
 #include <linux/fcntl.h> 
 #include <linux/fs.h>
-#include <lg_diagcmd.h>
+#include <mach/lg_diagcmd.h>
 #include <linux/uaccess.h>
 #include <linux/delay.h>  //jihye.ahn
 #include <linux/vmalloc.h>

@@ -1,11 +1,11 @@
 #include <linux/module.h>
-#include <lg_diagcmd.h>
+#include <mach/lg_diagcmd.h>
 #include <linux/input.h>
 #include <linux/syscalls.h>
 
-#include <lg_fw_diag_communication.h>
-#include <lg_diag_testmode.h>
-#include <mach/qdsp5v2/audio_def.h>
+#include <../arch/arm/mach-msm/include/mach/lg_fw_diag_communication.h>
+#include <../arch/arm/mach-msm/include/mach/lg_diag_testmode.h>
+#include <../arch/arm/mach-msm/include/mach/qdsp5v2/audio_def.h>
 #include <linux/delay.h>
 
 #ifndef SKW_TEST
@@ -15,20 +15,20 @@
 #endif
 
 #ifdef CONFIG_LGE_DLOAD_SRD
-#include <userDataBackUpDiag.h>
-#include <userDataBackUpTypeDef.h> 
-#include <../../kernel/arch/arm/mach-msm/smd_private.h>
+#include <../arch/arm/mach-msm/include/userDataBackUpDiag.h>
+#include <../arch/arm/mach-msm/include/userDataBackUpTypeDef.h> 
+#include <../arch/arm/mach-msm/smd_private.h>
 #include <linux/slab.h>
 #endif 
 
 #include <linux/parser.h>
 
-#include <mach/board_lge.h>
-#include <lg_backup_items.h>
+#include <../arch/arm/mach-msm/include/mach/board_lge.h>
+#include <../arch/arm/mach-msm/include/mach/lg_backup_items.h>
 
 #include <linux/gpio.h>
 #include <linux/mfd/pmic8058.h>
-#include <mach/irqs.h>
+#include <../arch/arm/mach-msm/include/mach/irqs.h>
 
 #if 0 // M3 use Internal SD, not External SD
 // m3 use Internal SD, so we dont use this
@@ -249,6 +249,8 @@ void* not_supported_command_handler(test_mode_req_type * pReq, DIAG_TEST_MODE_F_
     return pRsp;
 }
 
+#ifndef CONFIG_LGE_DIAG_KEYPRESS
+
 void LGF_SendKey(word keycode)
 {
 	struct input_dev* idev = NULL;
@@ -262,6 +264,7 @@ void LGF_SendKey(word keycode)
 	input_report_key(idev,(unsigned int)keycode, 0);
 
 }
+#endif
 
 uint8_t if_condition_is_on_air_plain_mode;
 void* LGF_PowerSaveMode(test_mode_req_type* pReq, DIAG_TEST_MODE_F_rsp_type* pRsp)

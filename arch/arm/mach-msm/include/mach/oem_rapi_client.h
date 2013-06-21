@@ -41,6 +41,10 @@ enum {
 	 * 2010-07-12 taehung.kim@lge.com
 	 */
 	LG_FW_SET_OPERATIN_MODE = LG_FW_RAPI_START + 5,
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	//LGSI_LS670_Froyo_ToGB_Raghupathy_26Apr2011_Start
+	LG_FW_A2M_BLOCK_CHARGING_SET = LG_FW_RAPI_START + 11,
+#endif
 #endif
 	OEM_RAPI_CLIENT_EVENT_MAX
 

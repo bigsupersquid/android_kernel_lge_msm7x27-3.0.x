@@ -1,4 +1,4 @@
-#include "lg_diag_dload.h"
+#include "mach/lg_diag_dload.h"
 
 // LG_FW : 2011.07.07 moon.yongho : saving webdload status variable to eMMC. ----------[[
 #ifdef LG_FW_WEB_DOWNLOAD

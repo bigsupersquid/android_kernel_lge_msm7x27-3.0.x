@@ -8,7 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
-#include <lg_fw_diag_communication.h>
+#include <mach/lg_fw_diag_communication.h>
 
 
 #define DEBUG_DIAG 1
