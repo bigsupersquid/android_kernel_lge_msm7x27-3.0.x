@@ -250,20 +250,17 @@ void __init thunderc_init_i2c_backlight(int bus_num)
 /* common functions */
 void __init lge_add_lcd_devices(void)
 {
-  gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-  if(gpio_get_value(101))
-  {
-    lge_lcd_panel = 1;
-  }
-  else
-  {
-    lge_lcd_panel = 0;
-  }
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		lge_lcd_panel = gpio_get_value(101);  //	0: Hitachi 1:Novatek
+	gpio_free(101);
+	}
   printk(KERN_ERR "%s: lge_lcd_panel : %d \n", __func__, lge_lcd_panel);      
 /* LGE_CHANGE [james.jang@lge.com] 2010-08-28, probe LCD */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
-  platform_device_register(&mddi_novatek_panel_device);	
-  platform_device_register(&mddi_hitachi_panel_device);	
+		platform_device_register(&mddi_novatek_panel_device);	
+		platform_device_register(&mddi_hitachi_panel_device);	
 #else	
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-05-11, support the Sharp Panel (Novatek DDI) */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
