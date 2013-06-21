@@ -136,13 +136,19 @@ int camera_power_on (void)
 			goto power_on_fail;
 		}
 	} else {	/* it is for rev.c and default */
-		struct vreg *vreg_mmc = vreg_get(0, "mmc");
-#ifdef VREG_SD_LEVEL
-		vreg_set_level(vreg_mmc, VREG_SD_LEVEL);
-#else
-		vreg_set_level(vreg_mmc, 2800);
-#endif
-		vreg_enable(vreg_mmc);
+/* thunderc */
+	struct vreg *vreg_rftx;
+	vreg_rftx = vreg_get(0, "rftx");
+	vreg_set_level(vreg_rftx, 2800);
+	vreg_enable(vreg_rftx);
+//		struct vreg *vreg_mmc = vreg_get(0, "mmc");
+//#ifdef VREG_SD_LEVEL
+//		vreg_set_level(vreg_mmc, VREG_SD_LEVEL);
+//#else
+//		vreg_set_level(vreg_mmc, 2800);
+//#endif
+//		vreg_enable(vreg_mmc);
+/* end mod */
 //		struct regulator *vreg_mmc = regulator_get(NULL, "mmc");
 //#ifdef VREG_SD_LEVEL
 //		regulator_set_voltage(vreg_mmc, VREG_SD_LEVEL*1000, VREG_SD_LEVEL*1000);
@@ -247,9 +253,15 @@ int camera_power_off (void)
 			goto power_off_fail;
 		}
 	} else {	/* it is for rev.c and default */
-		struct vreg *vreg_mmc = vreg_get(0, "mmc");
+/* thunderc */
+	struct vreg *vreg_rftx;
+	vreg_rftx = vreg_get(0, "rftx");
+	vreg_set_level(vreg_rftx, 0);
+	vreg_disable(vreg_rftx);
+//		struct vreg *vreg_mmc = vreg_get(0, "mmc");
 		/////////////////////vreg_set_level(vreg_mmc, 0);
-		vreg_disable(vreg_mmc);
+//		vreg_disable(vreg_mmc);
+/* end mod */
 //		struct regulator *vreg_mmc = regulator_get(NULL, "mmc");
 //		regulator_set_voltage(vreg_mmc, 0, 0);
 //		regulator_disable(vreg_mmc);
