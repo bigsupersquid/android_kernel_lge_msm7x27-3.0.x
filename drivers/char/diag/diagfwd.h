@@ -15,7 +15,7 @@
 
 #define NO_PROCESS	0
 #define NON_APPS_PROC	-1
-
+#include "diagchar.h"
 void diagfwd_init(void);
 void diagfwd_exit(void);
 void diag_process_hdlc(void *data, unsigned len);
