@@ -1369,10 +1369,18 @@ config MSM_CPU_FREQ_MIN
 config MSM7X27_OVERCLOCK
 	bool "Enable SoC overclocking"
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
-	depends on MACH_MSM7X27_THUNDERG
+	depends on MACH_MSM7X27_THUNDERG || MACH_MSM7X27_THUNDERC
 	default n
 	help
 	  Enable support for non-standard acpuclock frequencies/voltages.
+
+config MSM_CPU_FREQ_OVERCLOCK_AHB
+	bool "Overclock the AHB-bus with 50% for all frequencies from 480MHz and above (Alohag)."
+	depends on MACH_MSM7X27_THUNDERG || MACH_MSM7X27_THUNDERC
+	default n
+	help
+	  Increases the speed of memory read/writes but can cause instability.
+	  If unsure, choose N.
 
 endif # CPU_FREQ_MSM
 
