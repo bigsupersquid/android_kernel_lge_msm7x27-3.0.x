@@ -20,7 +20,6 @@ endif
 
 obj-$(CONFIG_SENSOR_BMA150)	+= bma150.o
 obj-$(CONFIG_SENSOR_BMA250) += bma250_driver.o
-obj-$(CONFIG_SENSOR_K3DH)	+= k3dh.o
 ifeq ($(CONFIG_MACH_MSM7X27_ALESSI), y)
 obj-$(CONFIG_SENSOR_KR3DM)	+= kr3dm_alessi.o
 else
@@ -48,3 +47,4 @@ endif
 endif
 obj-$(CONFIG_SENSOR_APDS9190) += apds9190.o
 obj-$(CONFIG_SENSORS_APDS9801) += apds9801.o
+
