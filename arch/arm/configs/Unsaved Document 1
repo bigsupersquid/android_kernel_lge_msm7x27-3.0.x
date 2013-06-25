@@ -1,0 +1,5 @@
+<6>[    3.611106] battery rpc: ept : 0xdd38af00, prog : 0x30000089, vers : 0x10001
+<6>[    3.617814] charger rpc: ept : 0xdd364320, prog : 0x3000001a, vers : 0x10001
+<6>[    3.625361] msm_batt_get_charger_api_version(): num_of_chg_api_versions = 4  The chg api version = 0x00010004
+make
+
