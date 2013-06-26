@@ -656,6 +656,12 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 
 	iBuf->vsync_enable = sync;
 
+#if defined(THUNDERC_FBCONSOLE)
+    iBuf->dma_x = 0;
+    iBuf->dma_y = 0;
+    iBuf->dma_w = info->var.xres;
+    iBuf->dma_h = info->var.yres;
+#else
 	if (dirty) {
 		/*
 		 * ToDo: dirty region check inside var.xoffset+xres
@@ -671,6 +677,7 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 		iBuf->dma_w = info->var.xres;
 		iBuf->dma_h = info->var.yres;
 	}
+#endif
 	mfd->ibuf_flushed = FALSE;
 	up(&mfd->sem);
 }
