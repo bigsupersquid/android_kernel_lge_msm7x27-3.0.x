@@ -656,7 +656,7 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 
 	iBuf->vsync_enable = sync;
 
-#if defined(THUNDERC_FBCONSOLE)
+#if defined(CONFIG_THUNDERC_FBCONSOLE)
     iBuf->dma_x = 0;
     iBuf->dma_y = 0;
     iBuf->dma_w = info->var.xres;
