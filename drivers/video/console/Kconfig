@@ -112,6 +112,13 @@ config FRAMEBUFFER_CONSOLE_DETECT_PRIMARY
 
 	 If unsure, select n.
 
+config THUNDERC_FBCONSOLE
+       bool "Hack to remove console bug for ThunderC board"
+       depends on FRAMEBUFFER_CONSOLE_DETECT_PRIMARY
+	default n
+	--help--
+	Hack to display console on boot for ThunderC board
+
 config FRAMEBUFFER_CONSOLE_ROTATION
        bool "Framebuffer Console Rotation"
        depends on FRAMEBUFFER_CONSOLE
