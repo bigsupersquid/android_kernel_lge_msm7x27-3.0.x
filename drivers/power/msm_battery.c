@@ -15,7 +15,7 @@
  * this needs to be before <linux/kernel.h> is loaded,
  * and <linux/sched.h> loads <linux/kernel.h>
  */
-#define DEBUG  0
+#define DEBUG  1
 
 #include <linux/slab.h>
 #include <linux/earlysuspend.h>
@@ -51,6 +51,7 @@
 #define CHG_RPC_PROG		0x3000001a
 #define CHG_RPC_VER_1_1		0x00010001
 #define CHG_RPC_VER_1_3		0x00010003
+#define CHG_RPC_VER_1_4		0x00010004
 #define CHG_RPC_VER_2_2		0x00020002
 #define CHG_RPC_VER_3_1         0x00030001
 #define CHG_RPC_VER_4_1         0x00040001
@@ -73,7 +74,12 @@
 #define ONCRPC_CHG_GET_GENERAL_STATUS_PROC	12
 #define ONCRPC_CHARGER_API_VERSIONS_PROC	0xffffffff
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+#define ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC 20
+#define BATT_RPC_TIMEOUT    10000	/* 10 sec */
+#else
 #define BATT_RPC_TIMEOUT    5000	/* 5 sec */
+#endif
 
 #define INVALID_BATT_HANDLE    -1
 
@@ -247,6 +253,7 @@ struct msm_battery_info {
 	struct power_supply *current_ps;
 
 	struct msm_rpc_client *batt_client;
+	struct msm_rpc_endpoint *batt_ep;
 	struct msm_rpc_endpoint *chg_ep;
 
 	wait_queue_head_t wait_q;
@@ -269,6 +276,10 @@ static struct msm_battery_info msm_batt_info = {
 	.batt_valid  = 1,
 	.battery_temp = 23,
 	.vbatt_modify_reply_avail = 0,
+};
+
+static struct pseudo_batt_info_type pseudo_batt_info = {
+  .mode = 0,
 };
 
 static enum power_supply_property msm_power_props[] = {
@@ -330,6 +341,7 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TEMP,
+  POWER_SUPPLY_PROP_PSEUDO_BATT,
 };
 
 static int msm_batt_power_get_property(struct power_supply *psy,
@@ -338,12 +350,23 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 {
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+    if(pseudo_batt_info.mode == 1)
+      val->intval = pseudo_batt_info.charging;
+    else
 		val->intval = msm_batt_info.batt_status;
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = msm_batt_info.batt_health;
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
+    if(pseudo_batt_info.mode == 1)
+    {
+      if(pseudo_batt_info.id == 1 || pseudo_batt_info.therm != 0)
+        val->intval = 1;
+      else
+        val->intval = 0;
+    }
+    else
 		val->intval = msm_batt_info.batt_valid;
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
@@ -362,12 +385,18 @@ static int msm_batt_power_get_property(struct power_supply *psy,
  * The unit of voltage_now is micro voltage.
  * So, we convert it here.
  */
+    if(pseudo_batt_info.mode == 1)
+      val->intval = pseudo_batt_info.volt;
+    else
 		val->intval = (msm_batt_info.battery_voltage)*1000;
 #else
 		val->intval = msm_batt_info.battery_voltage;
 #endif
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
+    if(pseudo_batt_info.mode == 1)
+      val->intval = pseudo_batt_info.capacity;
+    else
 		val->intval = msm_batt_info.batt_capacity;
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
@@ -377,11 +406,18 @@ static int msm_batt_power_get_property(struct power_supply *psy,
  * The android framework and application treat it as xx.x degree Celsius.
  * So, we convert it here.
  */
+    if(pseudo_batt_info.mode == 1)
+      val->intval = pseudo_batt_info.temp;
+    else
 		val->intval = (msm_batt_info.battery_temp)*10;
 #else
 		val->intval = msm_batt_info.battery_temp;
 #endif
 		break;
+  case POWER_SUPPLY_PROP_PSEUDO_BATT:
+    val->intval = pseudo_batt_info.mode;
+    break;
+
 	default:
 		return -EINVAL;
 	}
@@ -397,6 +433,26 @@ static struct power_supply msm_psy_batt = {
 };
 
 #ifndef CONFIG_BATTERY_MSM_FAKE
+/* LGE_CHANGES_S [woonghee.park@lge.com] 2010-02-09, [VS740], LG_FW_BATT_ID_CHECK, LG_FW_BATT_THM*/
+extern void battery_info_get(struct batt_info* rsp);
+extern void pseudo_batt_info_set(struct pseudo_batt_info_type*);
+
+int pseudo_batt_set(struct pseudo_batt_info_type* info)
+{
+  pseudo_batt_info.mode = info->mode;
+  pseudo_batt_info.id = info->id;
+  pseudo_batt_info.therm = info->therm;
+  pseudo_batt_info.temp = info->temp;
+  pseudo_batt_info.volt = info->volt;
+  pseudo_batt_info.capacity = info->capacity;
+  pseudo_batt_info.charging = info->charging;
+
+	power_supply_changed(&msm_psy_batt);
+  pseudo_batt_info_set(&pseudo_batt_info);
+  return 0;
+}
+EXPORT_SYMBOL(pseudo_batt_set);
+
 struct msm_batt_get_volt_ret_data {
 	u32 battery_voltage;
 };
@@ -452,13 +508,21 @@ static int msm_batt_get_batt_chg_status(void)
 
 	v1p = &rep_batt_chg.v1;
 	rc = msm_rpc_call_reply(msm_batt_info.chg_ep,
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+				ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC,
+#else
 				ONCRPC_CHG_GET_GENERAL_STATUS_PROC,
+#endif
 				&req_batt_chg, sizeof(req_batt_chg),
 				&rep_batt_chg, sizeof(rep_batt_chg),
 				msecs_to_jiffies(BATT_RPC_TIMEOUT));
 	if (rc < 0) {
 		pr_err("%s: ERROR. msm_rpc_call_reply failed! proc=%d rc=%d\n",
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+		       __func__, ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC, rc);
+#else
 		       __func__, ONCRPC_CHG_GET_GENERAL_STATUS_PROC, rc);
+#endif
 		return rc;
 	} else if (be32_to_cpu(v1p->more_data)) {
 		be32_to_cpu_self(v1p->charger_status);
@@ -1877,6 +1941,12 @@ static int __devinit msm_batt_init_rpc(void)
 	}
 	if (IS_ERR(msm_batt_info.chg_ep)) {
 		msm_batt_info.chg_ep = msm_rpc_connect_compatible(
+				CHG_RPC_PROG, CHG_RPC_VER_1_4, 0);
+		msm_batt_info.chg_api_version =  CHG_RPC_VER_1_4;
+	}
+
+	if (IS_ERR(msm_batt_info.chg_ep)) {
+		msm_batt_info.chg_ep = msm_rpc_connect_compatible(
 				CHG_RPC_PROG, CHG_RPC_VER_2_2, 0);
 		msm_batt_info.chg_api_version =  CHG_RPC_VER_2_2;
 	}
@@ -1897,6 +1967,15 @@ static int __devinit msm_batt_init_rpc(void)
 	if (msm_batt_info.chg_api_version < 0)
 		msm_batt_info.chg_api_version = CHG_RPC_VER_1_1;
 	msm_batt_info.batt_api_version =  BATTERY_RPC_VER_4_1;
+
+	printk(KERN_INFO "charger rpc: ept : 0x%x, prog : 0x%x, vers : 0x%x\n",
+					(u32)msm_batt_info.chg_ep, CHG_RPC_PROG ,msm_batt_info.chg_api_version);
+
+	msm_batt_info.batt_ep =
+	    msm_rpc_connect_compatible(BATTERY_RPC_PROG, BATTERY_RPC_VER_1_1, 0);
+
+	printk(KERN_INFO "battery rpc: ept : 0x%x, prog : 0x%x, vers : 0x%x\n",
+					(u32)msm_batt_info.batt_ep, BATTERY_RPC_PROG ,BATTERY_RPC_VER_1_1);
 
 	msm_batt_info.batt_client =
 		msm_rpc_register_client("battery", BATTERY_RPC_PROG,
