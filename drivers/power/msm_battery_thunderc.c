@@ -458,21 +458,13 @@ static int msm_batt_get_batt_chg_status(void)
 
 	v1p = &rep_batt_chg.v1;
 	rc = msm_rpc_call_reply(msm_batt_info.chg_ep,
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
 				ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC,
-#else
-				ONCRPC_CHG_GET_GENERAL_STATUS_PROC,
-#endif
 				&req_batt_chg, sizeof(req_batt_chg),
 				&rep_batt_chg, sizeof(rep_batt_chg),
 				msecs_to_jiffies(BATT_RPC_TIMEOUT));
 	if (rc < 0) {
 		pr_err("%s: ERROR. msm_rpc_call_reply failed! proc=%d rc=%d\n",
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
 		       __func__, ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC, rc);
-#else
-		       __func__, ONCRPC_CHG_GET_GENERAL_STATUS_PROC, rc);
-#endif
 		return rc;
 	} else if (be32_to_cpu(v1p->more_data)) {
 		be32_to_cpu_self(v1p->charger_status);
@@ -1854,11 +1846,9 @@ static int __devinit msm_batt_init_rpc(void)
 #ifdef CONFIG_BATTERY_MSM_FAKE
 	pr_info("Faking MSM battery\n");
 #else
-{
 		msm_batt_info.chg_ep = msm_rpc_connect_compatible(
 				CHG_RPC_PROG, CHG_RPC_VER_1_1, 0);
 		msm_batt_info.chg_api_version =  CHG_RPC_VER_1_1;
-	}
 	if (IS_ERR(msm_batt_info.chg_ep)) {
 		rc = PTR_ERR(msm_batt_info.chg_ep);
 		pr_err("%s: FAIL: rpc connect for CHG_RPC_PROG. rc=%d\n",
@@ -1881,12 +1871,13 @@ static int __devinit msm_batt_init_rpc(void)
 	printk(KERN_INFO "battery rpc: ept : 0x%x, prog : 0x%x, vers : 0x%x\n",
 					(u32)msm_batt_info.batt_ep, BATTERY_RPC_PROG ,BATTERY_RPC_VER_1_1);
 
-{
+//{
 		msm_batt_info.batt_client =
 			msm_rpc_register_client("battery", BATTERY_RPC_PROG,
 						BATTERY_RPC_VER_1_1,
 						1, msm_batt_cb_func);
 		msm_batt_info.batt_api_version =  BATTERY_RPC_VER_1_1;
+#if 0
 	}
 	if (IS_ERR(msm_batt_info.batt_client)) {
 		msm_batt_info.batt_client =
@@ -1902,6 +1893,7 @@ static int __devinit msm_batt_init_rpc(void)
 						1, msm_batt_cb_func);
 		msm_batt_info.batt_api_version =  BATTERY_RPC_VER_5_1;
 	}
+#endif //0
 	if (IS_ERR(msm_batt_info.batt_client)) {
 		rc = PTR_ERR(msm_batt_info.batt_client);
 		pr_err("%s: ERROR: rpc_register_client: rc = %d\n ",
