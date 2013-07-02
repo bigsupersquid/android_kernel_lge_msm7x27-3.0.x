@@ -52,8 +52,6 @@
 #define BATTERY_READ_MV_PROC				12
 #define BATTERY_ENABLE_DISABLE_FILTER_PROC		14
 
-//#define VBATT_FILTER			2
-
 #define BATTERY_CB_TYPE_PROC		1
 #define BATTERY_CB_ID_ALL_ACTIV		1
 #define BATTERY_CB_ID_LOW_VOL		2
@@ -104,7 +102,6 @@ enum {
 	BATTERY_VOLTAGE_BELOW_THIS_LEVEL,
 	BATTERY_VOLTAGE_LEVEL,
 	BATTERY_ALL_ACTIVITY,
-//	VBATT_CHG_EVENTS,
 	BATTERY_VOLTAGE_UNKNOWN,
 };
 
@@ -242,8 +239,6 @@ struct msm_battery_info {
 
 	wait_queue_head_t wait_q;
 
-//	u32 vbatt_modify_reply_avail;
-
 	struct early_suspend early_suspend;
 };
 
@@ -260,7 +255,6 @@ static struct msm_battery_info msm_batt_info = {
 	.batt_valid  = 1,
 	.battery_temp = 23,
 	.battery_therm = 75,
-//	.vbatt_modify_reply_avail = 0,
 };
 
 static enum power_supply_property msm_power_props[] = {
@@ -393,40 +387,6 @@ struct msm_batt_get_volt_ret_data {
 	u32 battery_voltage;
 };
 
-#if 0
-static int msm_batt_get_volt_ret_func(struct msm_rpc_client *batt_client,
-				       void *buf, void *data)
-{
-	struct msm_batt_get_volt_ret_data *data_ptr, *buf_ptr;
-
-	data_ptr = (struct msm_batt_get_volt_ret_data *)data;
-	buf_ptr = (struct msm_batt_get_volt_ret_data *)buf;
-
-	data_ptr->battery_voltage = be32_to_cpu(buf_ptr->battery_voltage);
-
-	return 0;
-}
-
-static u32 msm_batt_get_vbatt_voltage(void)
-{
-	int rc;
-
-	struct msm_batt_get_volt_ret_data rep;
-
-	rc = msm_rpc_client_req(msm_batt_info.batt_client,
-			BATTERY_READ_MV_PROC,
-			NULL, NULL,
-			msm_batt_get_volt_ret_func, &rep,
-			msecs_to_jiffies(BATT_RPC_TIMEOUT));
-
-	if (rc < 0) {
-		pr_err("%s: FAIL: vbatt get volt. rc=%d\n", __func__, rc);
-		return 0;
-	}
-
-	return rep.battery_voltage;
-}
-#endif //0
 #define	be32_to_cpu_self(v)	(v = be32_to_cpu(v))
 
 static int msm_batt_get_batt_chg_status(void)
@@ -690,16 +650,7 @@ static void msm_batt_update_psy_status(void)
 	}
 
 	/* Correct battery voltage and status */
-#if 0
-	if (!battery_voltage) {
-		if (charger_status == CHARGER_STATUS_INVALID) {
-			DBG_LIMIT("BATT: Read VBATT\n");
-			battery_voltage = msm_batt_get_vbatt_voltage();
-		} else
-			/* Use previous */
-#endif
 			battery_voltage = msm_batt_info.battery_voltage;
-//	}
 	
 #ifdef CONFIG_LGE_FUEL_SPG
 	// LGE_CHANGE_S dangwoo.choi@lge.com
@@ -848,85 +799,6 @@ struct batt_modify_client_rep {
 	u32 result;
 };
 
-#if 0
-static int msm_batt_modify_client_arg_func(struct msm_rpc_client *batt_client,
-				       void *buf, void *data)
-{
-	struct batt_modify_client_req *batt_modify_client_req =
-		(struct batt_modify_client_req *)data;
-	u32 *req = (u32 *)buf;
-	int size = 0;
-
-	*req = cpu_to_be32(batt_modify_client_req->client_handle);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(batt_modify_client_req->desired_batt_voltage);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(batt_modify_client_req->voltage_direction);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(batt_modify_client_req->batt_cb_id);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(batt_modify_client_req->cb_data);
-	size += sizeof(u32);
-
-	return size;
-}
-
-static int msm_batt_modify_client_ret_func(struct msm_rpc_client *batt_client,
-				       void *buf, void *data)
-{
-	struct  batt_modify_client_rep *data_ptr, *buf_ptr;
-
-	data_ptr = (struct batt_modify_client_rep *)data;
-	buf_ptr = (struct batt_modify_client_rep *)buf;
-
-	data_ptr->result = be32_to_cpu(buf_ptr->result);
-
-	return 0;
-}
-
-static int msm_batt_modify_client(u32 client_handle, u32 desired_batt_voltage,
-	     u32 voltage_direction, u32 batt_cb_id, u32 cb_data)
-{
-	int rc;
-
-	struct batt_modify_client_req  req;
-	struct batt_modify_client_rep rep;
-
-	req.client_handle = client_handle;
-	req.desired_batt_voltage = desired_batt_voltage;
-	req.voltage_direction = voltage_direction;
-	req.batt_cb_id = batt_cb_id;
-	req.cb_data = cb_data;
-
-	rc = msm_rpc_client_req(msm_batt_info.batt_client,
-			BATTERY_MODIFY_CLIENT_PROC,
-			msm_batt_modify_client_arg_func, &req,
-			msm_batt_modify_client_ret_func, &rep,
-			msecs_to_jiffies(BATT_RPC_TIMEOUT));
-
-	if (rc < 0) {
-		pr_err("%s: ERROR. failed to modify  Vbatt client\n",
-		       __func__);
-		return rc;
-	}
-
-	if (rep.result != BATTERY_MODIFICATION_SUCCESSFUL) {
-		pr_err("%s: ERROR. modify client failed. result = %u\n",
-		       __func__, rep.result);
-		return -EIO;
-	}
-
-	return 0;
-}
-#endif //0
 
 void msm_batt_early_suspend(struct early_suspend *h)
 {
@@ -995,22 +867,8 @@ static int msm_batt_suspend(struct platform_device *pdev, pm_message_t state)
 
 	msm_batt_update_psy_status();
 
-#if 0
-	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
-		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
-				BATTERY_LOW, BATTERY_VOLTAGE_BELOW_THIS_LEVEL,
-				BATTERY_CB_ID_LOW_VOL, BATTERY_LOW);
-
-		if (rc < 0) {
-			pr_err("%s: msm_batt_modify_client. rc=%d\n",
-			       __func__, rc);
-			return 0;
-		}
-	} else {
-#endif //0
 		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
 		return 0;
-//	}
 
 	return 0;
 }
@@ -1021,105 +879,14 @@ static int msm_batt_resume(struct platform_device *pdev)
 
 	pr_debug(KERN_INFO "[msm_battery] %s()...\n", __func__);
 
-#if 0
-	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
-		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
-				BATTERY_LOW, BATTERY_ALL_ACTIVITY,
-			       BATTERY_CB_ID_ALL_ACTIV, BATTERY_ALL_ACTIVITY);
-		if (rc < 0) {
-			pr_err("%s: msm_batt_modify_client FAIL rc=%d\n",
-			       __func__, rc);
-			return 0;
-		}
-	} else {
-#endif //0
 		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
 		return 0;
-//	}
 
 	msm_batt_update_psy_status();
 	return 0;
 }
 #endif //#if defined CONFIG_MACH_LGE && defined CONFIG_PM
 
-#if 0
-struct msm_batt_vbatt_filter_req {
-	u32 batt_handle;
-	u32 enable_filter;
-	u32 vbatt_filter;
-};
-
-struct msm_batt_vbatt_filter_rep {
-	u32 result;
-};
-
-static int msm_batt_filter_arg_func(struct msm_rpc_client *batt_client,
-
-		void *buf, void *data)
-{
-	struct msm_batt_vbatt_filter_req *vbatt_filter_req =
-		(struct msm_batt_vbatt_filter_req *)data;
-	u32 *req = (u32 *)buf;
-	int size = 0;
-
-	*req = cpu_to_be32(vbatt_filter_req->batt_handle);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(vbatt_filter_req->enable_filter);
-	size += sizeof(u32);
-	req++;
-
-	*req = cpu_to_be32(vbatt_filter_req->vbatt_filter);
-	size += sizeof(u32);
-	return size;
-}
-
-static int msm_batt_filter_ret_func(struct msm_rpc_client *batt_client,
-				       void *buf, void *data)
-{
-
-	struct msm_batt_vbatt_filter_rep *data_ptr, *buf_ptr;
-
-	data_ptr = (struct msm_batt_vbatt_filter_rep *)data;
-	buf_ptr = (struct msm_batt_vbatt_filter_rep *)buf;
-
-	data_ptr->result = be32_to_cpu(buf_ptr->result);
-	return 0;
-}
-
-static int msm_batt_enable_filter(u32 vbatt_filter)
-{
-	int rc;
-	struct  msm_batt_vbatt_filter_req  vbatt_filter_req;
-	struct  msm_batt_vbatt_filter_rep  vbatt_filter_rep;
-
-	vbatt_filter_req.batt_handle = msm_batt_info.batt_handle;
-	vbatt_filter_req.enable_filter = 1;
-	vbatt_filter_req.vbatt_filter = vbatt_filter;
-
-	rc = msm_rpc_client_req(msm_batt_info.batt_client,
-			BATTERY_ENABLE_DISABLE_FILTER_PROC,
-			msm_batt_filter_arg_func, &vbatt_filter_req,
-			msm_batt_filter_ret_func, &vbatt_filter_rep,
-			msecs_to_jiffies(BATT_RPC_TIMEOUT));
-
-	if (rc < 0) {
-		pr_err("%s: FAIL: enable vbatt filter. rc=%d\n",
-		       __func__, rc);
-		return rc;
-	}
-
-	if (vbatt_filter_rep.result != BATTERY_DEREGISTRATION_SUCCESSFUL) {
-		pr_err("%s: FAIL: enable vbatt filter: result=%d\n",
-		       __func__, vbatt_filter_rep.result);
-		return -EIO;
-	}
-
-	pr_debug("%s: enable vbatt filter: OK\n", __func__);
-	return rc;
-}
-#endif //0
 
 struct batt_client_registration_req {
 	/* The voltage at which callback (CB) should be called. */
@@ -1138,35 +905,9 @@ struct batt_client_registration_req {
 	u32 batt_error;
 };
 
-#if 0
-struct batt_client_registration_req_4_1 {
-	/* The voltage at which callback (CB) should be called. */
-	u32 desired_batt_voltage;
-
-	/* The direction when the CB should be called. */
-	u32 voltage_direction;
-
-	/* The registered callback to be called when voltage and
-	 * direction specs are met. */
-	u32 batt_cb_id;
-
-	/* The call back data */
-	u32 cb_data;
-	u32 batt_error;
-};
-#endif
-
 struct batt_client_registration_rep {
 	u32 batt_handle;
 };
-
-#if 0
-struct batt_client_registration_rep_4_1 {
-	u32 batt_handle;
-	u32 more_data;
-	u32 err;
-};
-#endif
 
 static int msm_batt_register_arg_func(struct msm_rpc_client *batt_client,
 				       void *buf, void *data)
@@ -1689,19 +1430,6 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 		msm_batt_cleanup();
 		return rc;
 	}
-
-#if 0
-	rc =  msm_batt_enable_filter(VBATT_FILTER);
-
-	if (rc < 0) {
-		dev_err(&pdev->dev,
-			"%s: msm_batt_enable_filter failed rc = %d\n",
-			__func__, rc);
-		msm_batt_cleanup();
-		return rc;
-
-	}
-#endif //0
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	msm_batt_info.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
