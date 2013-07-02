@@ -42,29 +42,17 @@
 
 #define BATTERY_RPC_PROG	0x30000089
 #define BATTERY_RPC_VER_1_1	0x00010001
-#if 0
-#define BATTERY_RPC_VER_2_1	0x00020001
-#define BATTERY_RPC_VER_4_1     0x00040001
-#define BATTERY_RPC_VER_5_1     0x00050001
-#endif //0
 #define BATTERY_RPC_CB_PROG	(BATTERY_RPC_PROG | 0x01000000)
 
 #define CHG_RPC_PROG		0x3000001a
 #define CHG_RPC_VER_1_1		0x00010001
-#if 0
-#define CHG_RPC_VER_1_3		0x00010003
-#define CHG_RPC_VER_1_4		0x00010004
-#define CHG_RPC_VER_2_2		0x00020002
-#define CHG_RPC_VER_3_1         0x00030001
-#define CHG_RPC_VER_4_1         0x00040001
-#endif //0
 #define BATTERY_REGISTER_PROC				2
 #define BATTERY_MODIFY_CLIENT_PROC			4
 #define BATTERY_DEREGISTER_CLIENT_PROC			5
 #define BATTERY_READ_MV_PROC				12
 #define BATTERY_ENABLE_DISABLE_FILTER_PROC		14
 
-#define VBATT_FILTER			2
+//#define VBATT_FILTER			2
 
 #define BATTERY_CB_TYPE_PROC		1
 #define BATTERY_CB_ID_ALL_ACTIV		1
@@ -116,7 +104,7 @@ enum {
 	BATTERY_VOLTAGE_BELOW_THIS_LEVEL,
 	BATTERY_VOLTAGE_LEVEL,
 	BATTERY_ALL_ACTIVITY,
-	VBATT_CHG_EVENTS,
+//	VBATT_CHG_EVENTS,
 	BATTERY_VOLTAGE_UNKNOWN,
 };
 
@@ -254,7 +242,7 @@ struct msm_battery_info {
 
 	wait_queue_head_t wait_q;
 
-	u32 vbatt_modify_reply_avail;
+//	u32 vbatt_modify_reply_avail;
 
 	struct early_suspend early_suspend;
 };
@@ -272,7 +260,7 @@ static struct msm_battery_info msm_batt_info = {
 	.batt_valid  = 1,
 	.battery_temp = 23,
 	.battery_therm = 75,
-	.vbatt_modify_reply_avail = 0,
+//	.vbatt_modify_reply_avail = 0,
 };
 
 static enum power_supply_property msm_power_props[] = {
@@ -405,6 +393,7 @@ struct msm_batt_get_volt_ret_data {
 	u32 battery_voltage;
 };
 
+#if 0
 static int msm_batt_get_volt_ret_func(struct msm_rpc_client *batt_client,
 				       void *buf, void *data)
 {
@@ -437,7 +426,7 @@ static u32 msm_batt_get_vbatt_voltage(void)
 
 	return rep.battery_voltage;
 }
-
+#endif //0
 #define	be32_to_cpu_self(v)	(v = be32_to_cpu(v))
 
 static int msm_batt_get_batt_chg_status(void)
@@ -701,14 +690,16 @@ static void msm_batt_update_psy_status(void)
 	}
 
 	/* Correct battery voltage and status */
+#if 0
 	if (!battery_voltage) {
 		if (charger_status == CHARGER_STATUS_INVALID) {
 			DBG_LIMIT("BATT: Read VBATT\n");
 			battery_voltage = msm_batt_get_vbatt_voltage();
 		} else
 			/* Use previous */
+#endif
 			battery_voltage = msm_batt_info.battery_voltage;
-	}
+//	}
 	
 #ifdef CONFIG_LGE_FUEL_SPG
 	// LGE_CHANGE_S dangwoo.choi@lge.com
@@ -857,6 +848,7 @@ struct batt_modify_client_rep {
 	u32 result;
 };
 
+#if 0
 static int msm_batt_modify_client_arg_func(struct msm_rpc_client *batt_client,
 				       void *buf, void *data)
 {
@@ -934,6 +926,7 @@ static int msm_batt_modify_client(u32 client_handle, u32 desired_batt_voltage,
 
 	return 0;
 }
+#endif //0
 
 void msm_batt_early_suspend(struct early_suspend *h)
 {
@@ -1002,6 +995,7 @@ static int msm_batt_suspend(struct platform_device *pdev, pm_message_t state)
 
 	msm_batt_update_psy_status();
 
+#if 0
 	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
 		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
 				BATTERY_LOW, BATTERY_VOLTAGE_BELOW_THIS_LEVEL,
@@ -1013,9 +1007,10 @@ static int msm_batt_suspend(struct platform_device *pdev, pm_message_t state)
 			return 0;
 		}
 	} else {
+#endif //0
 		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
 		return 0;
-	}
+//	}
 
 	return 0;
 }
@@ -1026,6 +1021,7 @@ static int msm_batt_resume(struct platform_device *pdev)
 
 	pr_debug(KERN_INFO "[msm_battery] %s()...\n", __func__);
 
+#if 0
 	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
 		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
 				BATTERY_LOW, BATTERY_ALL_ACTIVITY,
@@ -1036,15 +1032,17 @@ static int msm_batt_resume(struct platform_device *pdev)
 			return 0;
 		}
 	} else {
+#endif //0
 		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
 		return 0;
-	}
+//	}
 
 	msm_batt_update_psy_status();
 	return 0;
 }
 #endif //#if defined CONFIG_MACH_LGE && defined CONFIG_PM
 
+#if 0
 struct msm_batt_vbatt_filter_req {
 	u32 batt_handle;
 	u32 enable_filter;
@@ -1121,6 +1119,7 @@ static int msm_batt_enable_filter(u32 vbatt_filter)
 	pr_debug("%s: enable vbatt filter: OK\n", __func__);
 	return rc;
 }
+#endif //0
 
 struct batt_client_registration_req {
 	/* The voltage at which callback (CB) should be called. */
@@ -1139,6 +1138,7 @@ struct batt_client_registration_req {
 	u32 batt_error;
 };
 
+#if 0
 struct batt_client_registration_req_4_1 {
 	/* The voltage at which callback (CB) should be called. */
 	u32 desired_batt_voltage;
@@ -1154,16 +1154,19 @@ struct batt_client_registration_req_4_1 {
 	u32 cb_data;
 	u32 batt_error;
 };
+#endif
 
 struct batt_client_registration_rep {
 	u32 batt_handle;
 };
 
+#if 0
 struct batt_client_registration_rep_4_1 {
 	u32 batt_handle;
 	u32 more_data;
 	u32 err;
 };
+#endif
 
 static int msm_batt_register_arg_func(struct msm_rpc_client *batt_client,
 				       void *buf, void *data)
@@ -1687,6 +1690,7 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 		return rc;
 	}
 
+#if 0
 	rc =  msm_batt_enable_filter(VBATT_FILTER);
 
 	if (rc < 0) {
@@ -1697,6 +1701,7 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 		return rc;
 
 	}
+#endif //0
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	msm_batt_info.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
