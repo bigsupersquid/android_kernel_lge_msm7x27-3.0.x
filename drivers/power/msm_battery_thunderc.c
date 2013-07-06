@@ -148,6 +148,7 @@ struct rpc_reply_batt_chg_v1 {
 	u32 charger_valid;
 	u32 battery_charging;
 	u32 battery_valid;
+	u32 battery_capacity;
 };
 
 struct rpc_reply_batt_chg_v2 {
@@ -189,7 +190,7 @@ struct msm_battery_info {
 	u32 voltage_now; /* in millie volts */
 	u32 batt_temp;  /* in celsius */
 	u32 batt_therm;
-	u32(*calculate_capacity) (u32 voltage);
+//	u32(*calculate_capacity) (u32 voltage);
 
 	struct power_supply *msm_psy_ac;
 	struct power_supply *msm_psy_usb;
@@ -311,7 +312,7 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 		val->intval = (msm_batt_info.voltage_now)*1000;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		val->intval = msm_batt_info.batt_capacity;
+		val->intval = msm_batt_info.battery_level;
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 /* 2011-04-11 by hyuncheol0@lge.com
@@ -370,7 +371,7 @@ static int msm_batt_get_batt_chg_status(void)
 //		v1p->charger_status=CHARGER_STATUS_INVALID;
 		v1p->battery_status=BATTERY_STATUS_GOOD;
 //		v1p->charger_type=CHARGER_TYPE_INVALID;
-
+		v1p->battery_capacity=be32_to_cpu(v1p->battery_level);
 #if 0
 		DBG_LIMIT("%s() \n ----- charger / battery status --------\n", __func__);
 		DBG_LIMIT("\t battery_level=%d\n", v1p->battery_level);
@@ -611,8 +612,7 @@ static void msm_batt_update_psy_status(void)
 
 	if (msm_batt_info.voltage_now != voltage_now) {
 		msm_batt_info.voltage_now  	= voltage_now;
-		msm_batt_info.batt_capacity =
-			msm_batt_info.calculate_capacity(voltage_now);
+//		msm_batt_info.calculate_capacity(voltage_now);
 		DBG_LIMIT("BATT: voltage = %u mV [capacity = %d%%]\n",
 			 voltage_now, msm_batt_info.batt_capacity);
 
@@ -699,6 +699,7 @@ static int msm_batt_cleanup(void)
 	return rc;
 }
 
+#if 0
 static u32 msm_batt_capacity(u32 current_voltage)
 {
 	u32 low_voltage = msm_batt_info.voltage_min_design;
@@ -712,6 +713,7 @@ static u32 msm_batt_capacity(u32 current_voltage)
 		return (current_voltage - low_voltage) * 100
 			/ (high_voltage - low_voltage);
 }
+#endif
 
 int msm_batt_get_charger_api_version(void)
 {
@@ -913,8 +915,7 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	msm_batt_info.voltage_max_design = pdata->voltage_max_design;
 	msm_batt_info.voltage_min_design = pdata->voltage_min_design;
 	msm_batt_info.batt_technology = pdata->batt_technology;
-	msm_batt_info.calculate_capacity = pdata->calculate_capacity;
-
+//	msm_batt_info.calculate_capacity = pdata->calculate_capacity;
 	if (!msm_batt_info.voltage_min_design)
 		msm_batt_info.voltage_min_design = BATTERY_LOW;
 	if (!msm_batt_info.voltage_max_design)
@@ -923,8 +924,8 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	if (msm_batt_info.batt_technology == POWER_SUPPLY_TECHNOLOGY_UNKNOWN)
 		msm_batt_info.batt_technology = POWER_SUPPLY_TECHNOLOGY_LION;
 
-	if (!msm_batt_info.calculate_capacity)
-		msm_batt_info.calculate_capacity = msm_batt_capacity;
+//	if (!msm_batt_info.calculate_capacity)
+//		msm_batt_info.calculate_capacity = msm_batt_capacity;
 
 	rc = power_supply_register(&pdev->dev, &msm_psy_batt);
 	if (rc < 0) {
