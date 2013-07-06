@@ -1525,61 +1525,63 @@ static struct attribute_group dev_attr_grp = {
 #ifdef CONFIG_MACH_LGE
 static unsigned batt_volt;
 static unsigned chg_therm;
-static unsigned pcb_version;
+//static unsigned pcb_version;
 static unsigned chg_curr_volt;
-static unsigned batt_therm;
-static unsigned batt_volt_raw;
+static unsigned batt_temp;
+static unsigned batt_level;
 
 
-static ssize_t msm_batt_batt_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
+static ssize_t msm_batt_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	batt_volt = msm_batt_info.voltage_now; //lge_get_batt_volt();
+	batt_volt = msm_batt_info.voltage_now;
 	return sprintf(buf,"%d\n", batt_volt);
 }
-static DEVICE_ATTR(batt_volt, S_IRUGO, msm_batt_batt_volt_show, NULL);
+static DEVICE_ATTR(batt_volt, S_IRUGO, msm_batt_volt_show, NULL);
 
 static ssize_t msm_batt_chg_therm_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	chg_therm = msm_batt_info.batt_therm; //lge_get_chg_therm();
+	chg_therm = msm_batt_info.batt_therm;
 	return sprintf(buf,"%d\n", chg_therm);
 }
 static DEVICE_ATTR(chg_therm, S_IRUGO, msm_batt_chg_therm_show, NULL);
 
+#if 0
 static ssize_t msm_batt_pcb_version_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
 	pcb_version = lge_get_pcb_version();
 	return sprintf(buf,"%d\n", pcb_version);
 }
 static DEVICE_ATTR(pcb_version, S_IRUGO, msm_batt_pcb_version_show, NULL);
+#endif
 
 static ssize_t msm_batt_chg_curr_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	chg_curr_volt = msm_batt_info.voltage_now; //lge_get_chg_curr_volt();
+	chg_curr_volt = msm_batt_info.voltage_now;
 	return sprintf(buf,"%d\n", chg_curr_volt);
 }
 static DEVICE_ATTR(chg_curr_volt, S_IRUGO, msm_batt_chg_curr_volt_show, NULL);
 
-static ssize_t msm_batt_batt_therm_show(struct device* dev, struct device_attribute* attr, char* buf)
+static ssize_t msm_batt_temp_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	batt_therm = msm_batt_info.batt_therm; //lge_get_batt_therm();
-	return sprintf(buf,"%d\n", batt_therm);
+	batt_temp = msm_batt_info.batt_temp;
+	return sprintf(buf,"%d\n", batt_temp);
 }
-static DEVICE_ATTR(batt_therm, S_IRUGO, msm_batt_batt_therm_show, NULL);
+static DEVICE_ATTR(batt_temp, S_IRUGO, msm_batt_temp_show, NULL);
 
-static ssize_t msm_batt_batt_volt_raw_show(struct device* dev, struct device_attribute* attr, char* buf)
+static ssize_t msm_batt_level_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	batt_volt_raw = msm_batt_info.voltage_now; //lge_get_batt_volt_raw();
-	return sprintf(buf,"%d\n", batt_volt_raw);
+	batt_level = msm_batt_info.battery_level;
+	return sprintf(buf,"%d\n", batt_level);
 }
-static DEVICE_ATTR(batt_volt_raw, S_IRUGO, msm_batt_batt_volt_raw_show, NULL);
+static DEVICE_ATTR(batt_level, S_IRUGO, msm_batt_level_show, NULL);
 
 static struct attribute* dev_attrs_lge_batt_info[] = {
 	&dev_attr_batt_volt.attr,
 	&dev_attr_chg_therm.attr,
-	&dev_attr_pcb_version.attr,
+//	&dev_attr_pcb_version.attr,
 	&dev_attr_chg_curr_volt.attr,
-	&dev_attr_batt_therm.attr,
-	&dev_attr_batt_volt_raw.attr,	
+	&dev_attr_batt_temp.attr,
+	&dev_attr_batt_level.attr,	
 	NULL,
 };
 
