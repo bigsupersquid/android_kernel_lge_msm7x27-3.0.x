@@ -34,6 +34,7 @@ modules.builtin
 *.gcno
 bootjbc
 bootz
+crosscompile.txt
 
 #
 # Top-level generic files
