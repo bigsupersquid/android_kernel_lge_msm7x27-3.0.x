@@ -15,7 +15,7 @@
 
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 #include <asm/gpio.h>
-extern int lge_lcd_probe;
+int lge_lcd_probe;
 #endif
 
 /* mdp primary csc limit vector */
@@ -810,7 +810,8 @@ static u32 thunder_lut_camera_novatek[256] = {
 void mdp_load_thunder_lut(int lut_type)
 {
 	int i=0;
-#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
+extern int lge_lcd_probe;
+#if 0 //defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
 	if (gpio_request(101, NULL)==0)
 	{
 		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
@@ -818,7 +819,7 @@ void mdp_load_thunder_lut(int lut_type)
 	gpio_free(101);
 	}
 	//else 
-	// print kernel error
+	//print kernel error
 #endif //(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)
 
 	/* Prevent changing lut if mdp clk is off */

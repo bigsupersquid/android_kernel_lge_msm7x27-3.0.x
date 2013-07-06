@@ -692,6 +692,8 @@ extern int lge_lcd_panel;
 	}
 	else 
 		printk(KERN_INFO "GPIO 101 allocation failure.\n");
+	if (gpio_get_value(101) != 1)
+		return -ENODEV;
 
 #endif
 

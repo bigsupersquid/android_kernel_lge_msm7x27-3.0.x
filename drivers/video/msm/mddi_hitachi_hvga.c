@@ -759,6 +759,8 @@ static int mddi_hitachi_lcd_init(void)
 	}
 	else 
 		printk(KERN_INFO "GPIO 101 allocation failure.\n");
+	if (gpio_get_value(101) != 0)
+		return -ENODEV;
 #endif
 
 	ret = platform_driver_register(&this_driver);

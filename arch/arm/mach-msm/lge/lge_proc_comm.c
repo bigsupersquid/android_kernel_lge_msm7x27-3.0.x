@@ -57,12 +57,40 @@ EXPORT_SYMBOL(lge_get_lpm_info);
 #endif
 
 #ifdef CONFIG_MACH_LGE
+#if defined(CONFIG_LGE_GET_POWER_ON_STATUS)
+/*
+ * return value:
+ *         PM_PWR_ON_EVENT_KEYPAD     0x1
+ *         PM_PWR_ON_EVENT_RTC        0x2
+ *         PM_PWR_ON_EVENT_CABLE      0x4
+ *         PM_PWR_ON_EVENT_SMPL       0x8
+ *         PM_PWR_ON_EVENT_WDOG       0x10
+ *         PM_PWR_ON_EVENT_USB_CHG    0x20
+ *         PM_PWR_ON_EVENT_WALL_CHG   0x40
+ */
+unsigned lge_get_power_on_status(void)
+{
+	int err;
+	unsigned status;
+	unsigned ftm;
+
+	err = msm_proc_comm(PCOM_GET_POWER_ON_STATUS, &status, &ftm);
+	if (err < 0) {
+		pr_err("%s: msm_proc_comm(PCOM_GET_POWER_ON_STATUS) failed\n",
+		       __func__);
+		return err;
+	}
+
+	return status;
+}
+EXPORT_SYMBOL(lge_get_power_on_status);
+#endif
 unsigned lge_get_batt_volt(void)
 {
 	int err;
 	unsigned ret = 0;
-	unsigned cmd = 0x3;
-	
+//	unsigned cmd = 0x3;
+	unsigned cmd = 0xF;
 	err = msm_proc_comm(PCOM_CUSTOMER_CMD2, &ret, &cmd);
 	if (err < 0) {
 		pr_err("%s: msm_proc_comm(PCOM_CUSTOMER_CMD2) failed. cmd(%d)\n",
@@ -181,8 +209,8 @@ unsigned lge_get_chg_en_reg(void)
 {
 	int err;
 	unsigned ret = 0;
-	unsigned cmd = 0xF;
-	
+//	unsigned cmd = 0xF;
+	unsigned cmd = 0x3;	
 	err = msm_proc_comm(PCOM_CUSTOMER_CMD2, &ret, &cmd);
 	if (err < 0) {
 		pr_err("%s: msm_proc_comm(PCOM_CUSTOMER_CMD2) failed. cmd(%d)\n",

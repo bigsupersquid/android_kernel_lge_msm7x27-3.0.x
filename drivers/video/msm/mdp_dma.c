@@ -34,7 +34,7 @@
 #include "mddihost.h"
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 #include <asm/gpio.h>
-int lge_lcd_probe = 0;
+extern int lge_lcd_probe;
 #endif
 
 

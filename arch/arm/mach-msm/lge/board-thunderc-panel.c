@@ -259,8 +259,13 @@ void __init lge_add_lcd_devices(void)
   printk(KERN_ERR "%s: lge_lcd_panel : %d \n", __func__, lge_lcd_panel);      
 /* LGE_CHANGE [james.jang@lge.com] 2010-08-28, probe LCD */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+if (lge_lcd_panel == 1){
 		platform_device_register(&mddi_novatek_panel_device);	
+  printk(KERN_ERR "%s: novatek panel registered: %d \n", __func__, lge_lcd_panel);      
+}else{
 		platform_device_register(&mddi_hitachi_panel_device);	
+  printk(KERN_ERR "%s: hitachi panel registered: %d \n", __func__, lge_lcd_panel);      
+}
 #else	
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-05-11, support the Sharp Panel (Novatek DDI) */
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA)

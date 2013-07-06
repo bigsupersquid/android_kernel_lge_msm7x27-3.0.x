@@ -32,6 +32,8 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
+bootjbc
+bootz
 
 #
 # Top-level generic files

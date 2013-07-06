@@ -55,16 +55,15 @@ ifeq ($(CONFIG_MACH_MSM7X27_ALOHAV),y)
 	BATT_DRIVER = msm_battery_alohav.o
 endif
 
-#LGE_CHANGE
-#ADD VS740 BATT DRIVER temporalily
-#2010-05-13, taehung.kim@lge.com
+ifeq ($(CONFIG_MACH_MSM7X27_GISELE),y)
+	BATT_DRIVER = msm_battery_gisele.o
+endif
+
 ifeq ($(CONFIG_MACH_MSM7X27_THUNDERC),y)
 	BATT_DRIVER = msm_battery_thunderc.o
 endif
 
-ifeq ($(CONFIG_MACH_MSM7X27_GISELE),y)
-	BATT_DRIVER = msm_battery_gisele.o
-endif
 BATT_DRIVER ?= msm_battery.o
+
 msm_batt-objs := $(BATT_DRIVER)
 
