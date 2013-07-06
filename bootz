@@ -1,4 +1,0 @@
-#!/bin/sh
-adb reboot bootloader
-fastboot -c 'console=tty0,115200 androidboot.hardware=thunderc fbcon=font:VGA8x8 mem=471M'  -b 12200000 boot arch/arm/boot/zImage jbcnochargerboot.img-ramdisk.gz
-
