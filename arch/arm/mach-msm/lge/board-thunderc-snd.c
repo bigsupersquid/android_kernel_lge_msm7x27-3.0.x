@@ -37,7 +37,7 @@ static struct snd_endpoint snd_endpoints_list[] = {
 	SND(CURRENT,30)
 #else
 /* LGE_CHANGE_S, [junyoub.an] , 2010-02-12, Define sound device*/
-	SND(HANDSET_LOOPBACK,5),
+//	SND(HANDSET_LOOPBACK,5),
 	SND(HANDSET, 5),
 	SND(HEADSET_LOOPBACK, 1),
 	SND(HEADSET, 2),
