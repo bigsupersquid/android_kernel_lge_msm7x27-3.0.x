@@ -83,7 +83,11 @@ typedef const struct si_pub  si_t;
 #include <dhd_dbg.h> 
 #define WL_SOFTAP(x) printk x
 static struct net_device *priv_dev;
+#if defined(CONFIG_LGE_BCM432X_PATCH)
+bool ap_fw_loaded = FALSE;
+#else
 static bool ap_fw_loaded = FALSE;
+#endif
 static bool ap_cfg_running = false;
 //static int ap_mode = 0;	//patch ROMTERM RC239 comment
 static int wl_iw_softap_deassoc_stations(struct net_device *dev);	//patch ROMTERM RC239 add
@@ -1221,6 +1225,7 @@ wl_iw_control_wl_on(
 #if defined(CONFIG_BRCM_USE_DEEPSLEEP)
 		/* Use Deep Sleep instead of WL RESET */
 		dhd_deep_sleep(dev, FALSE);
+		wl_iw_send_priv_event(dev, "START");
 #else /* CONFIG_BRCM_USE_DEEPSLEEP */
 #if defined(CONFIG_BRCM_USE_GPIO_RESET) /* Do not use GPIO Reset at On/Off. Use mpc. */
 #if defined(CONFIG_LGE_BCM432X_PATCH)
@@ -5915,6 +5920,11 @@ static int iwpriv_fw_reload(struct net_device *dev,
         }
 
         WL_SOFTAP(("SET firmware_path[]=%s , str_p:%p\n", fwstr, fwstr));
+        if (ap_fw_loaded) {
+		dhd_dev_reset(dev, 1);
+		bcm_mdelay(200);
+		dhd_dev_reset(dev, 0);
+	}
         ret = 0;
     } else {
         WL_ERROR(("Error: ivalid param len:%d\n", wrqu->data.length));
