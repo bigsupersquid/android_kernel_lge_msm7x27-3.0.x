@@ -30,9 +30,6 @@
 #ifdef BCMDRIVER
 #include <osl.h>
 #include <siutils.h>
-#if !defined(BCMDONGLEHOST)
-#include <bcmnvram.h>
-#endif /* !defined(BCMDONGLEHOST) */
 #else
 #include <stdio.h>
 #include <string.h>
@@ -878,114 +875,6 @@ bcm_mdelay(uint ms)
 		OSL_DELAY(1000);
 	}
 }
-
-#if !defined(BCMDONGLEHOST)
-/*
- * Search the name=value vars for a specific one and return its value.
- * Returns NULL if not found.
- */
-char *
-getvar(char *vars, const char *name)
-{
-	char *s;
-	int len;
-
-	if (!name)
-		return NULL;
-
-	len = strlen(name);
-	if (len == 0)
-		return NULL;
-
-	/* first look in vars[] */
-	for (s = vars; s && *s;) {
-		/* CSTYLED */
-		if ((bcmp(s, name, len) == 0) && (s[len] == '='))
-			return (&s[len+1]);
-
-		while (*s++)
-			;
-	}
-
-	/* then query nvram */
-	return (nvram_get(name));
-}
-
-/*
- * Search the vars for a specific one and return its value as
- * an integer. Returns 0 if not found.
- */
-int
-getintvar(char *vars, const char *name)
-{
-	char *val;
-
-	if ((val = getvar(vars, name)) == NULL)
-		return (0);
-
-	return (bcm_strtoul(val, NULL, 0));
-}
-
-
-/* Search for token in comma separated token-string */
-static int
-findmatch(char *string, char *name)
-{
-	uint len;
-	char *c;
-
-	len = strlen(name);
-	/* CSTYLED */
-	while ((c = strchr(string, ',')) != NULL) {
-		if (len == (uint)(c - string) && !strncmp(string, name, len))
-			return 1;
-		string = c + 1;
-	}
-
-	return (!strcmp(string, name));
-}
-
-/* Return gpio pin number assigned to the named pin
- *
- * Variable should be in format:
- *
- *	gpio<N>=pin_name,pin_name
- *
- * This format allows multiple features to share the gpio with mutual
- * understanding.
- *
- * 'def_pin' is returned if a specific gpio is not defined for the requested functionality
- * and if def_pin is not used by others.
- */
-uint
-getgpiopin(char *vars, char *pin_name, uint def_pin)
-{
-	char name[] = "gpioXXXX";
-	char *val;
-	uint pin;
-
-	/* Go thru all possibilities till a match in pin name */
-	for (pin = 0; pin < GPIO_NUMPINS; pin ++) {
-		snprintf(name, sizeof(name), "gpio%d", pin);
-		val = getvar(vars, name);
-		if (val && findmatch(val, pin_name))
-			return pin;
-	}
-
-	if (def_pin != GPIO_PIN_NOTDEFINED) {
-		/* make sure the default pin is not used by someone else */
-		snprintf(name, sizeof(name), "gpio%d", def_pin);
-		if (getvar(vars, name)) {
-			def_pin =  GPIO_PIN_NOTDEFINED;
-		}
-	}
-
-	return def_pin;
-}
-#endif /* !defined(BCMDONGLEHOST) */
-
-
-
 
 
 #if defined(DHD_DEBUG)

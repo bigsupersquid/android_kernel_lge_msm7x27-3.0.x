@@ -42,43 +42,43 @@
 #endif	
 
 typedef volatile struct {
-	uint32	chipid;			
+	uint32	chipid;
 	uint32	capabilities;
-	uint32	corecontrol;		
+	uint32	corecontrol;
 	uint32	bist;
 
 	
-	uint32	otpstatus;		
+	uint32	otpstatus;
 	uint32	otpcontrol;
 	uint32	otpprog;
 	uint32	PAD;
 
 	
-	uint32	intstatus;		
+	uint32	intstatus;
 	uint32	intmask;
-	uint32	chipcontrol;		
-	uint32	chipstatus;		
+	uint32	chipcontrol;
+	uint32	chipstatus;
 
 	
-	uint32	jtagcmd;		
+	uint32	jtagcmd;
 	uint32	jtagir;
 	uint32	jtagdr;
 	uint32	jtagctrl;
 
 	
-	uint32	flashcontrol;		
+	uint32	flashcontrol;
 	uint32	flashaddress;
 	uint32	flashdata;
 	uint32	PAD[1];
 
 	
-	uint32	broadcastaddress;	
+	uint32	broadcastaddress;
 	uint32	broadcastdata;
 
 	
-	uint32	gpiopullup;		
-	uint32	gpiopulldown;		
-	uint32	gpioin;			
+	uint32	gpiopullup;
+	uint32	gpiopulldown;
+	uint32	gpioin;
 	uint32	gpioout;
 	uint32	gpioouten;
 	uint32	gpiocontrol;
@@ -90,32 +90,32 @@ typedef volatile struct {
 	uint32	gpioeventintmask;
 
 	
-	uint32	watchdog;		
+	uint32	watchdog;
 
 	
 	uint32	gpioeventintpolarity;
 
 	
-	uint32  gpiotimerval;		
+	uint32  gpiotimerval;
 	uint32  gpiotimeroutmask;
 
 	
-	uint32	clockcontrol_n;		
-	uint32	clockcontrol_sb;	
-	uint32	clockcontrol_pci;	
-	uint32	clockcontrol_m2;	
-	uint32	clockcontrol_m3;	
-	uint32	clkdiv;			
+	uint32	clockcontrol_n;
+	uint32	clockcontrol_sb;
+	uint32	clockcontrol_pci;
+	uint32	clockcontrol_m2;
+	uint32	clockcontrol_m3;
+	uint32	clkdiv;
 	uint32	PAD[2];
 
 	
-	uint32	pll_on_delay;		
+	uint32	pll_on_delay;
 	uint32	fref_sel_delay;
-	uint32	slow_clk_ctl;		
+	uint32	slow_clk_ctl;
 	uint32	PAD[1];
 
 	
-	uint32	system_clk_ctl;		
+	uint32	system_clk_ctl;
 	uint32	clkstatestretch;
 	uint32	PAD[13];
 
@@ -123,7 +123,7 @@ typedef volatile struct {
 	uint32	eromptr;
 
 	
-	uint32	pcmcia_config;		
+	uint32	pcmcia_config;
 	uint32	pcmcia_memwait;
 	uint32	pcmcia_attrwait;
 	uint32	pcmcia_iowait;
@@ -136,38 +136,13 @@ typedef volatile struct {
 	uint32	flash_config;
 	uint32	flash_waitcount;
 	uint32	PAD[4];
-#if !defined(BCMDONGLEHOST)
-	
-	uint32	eci_output;		
-	uint32	eci_control;
-	uint32	eci_inputlo;
-	uint32	eci_inputmi;
-	uint32	eci_inputhi;
-	uint32	eci_inputintpolaritylo;
-	uint32	eci_inputintpolaritymi;
-	uint32	eci_inputintpolarityhi;
-	uint32	eci_intmasklo;
-	uint32	eci_intmaskmi;
-	uint32	eci_intmaskhi;
-	uint32	eci_eventlo;
-	uint32	eci_eventmi;
-	uint32	eci_eventhi;
-	uint32	eci_eventmasklo;
-	uint32	eci_eventmaskmi;
-	uint32	eci_eventmaskhi;
-	uint32	PAD[23];
-#else
 	uint32	PAD[40];
-#endif 
 
-
-	
-	uint32	clk_ctl_st;		
+	uint32	clk_ctl_st;
 	uint32	hw_war;
 	uint32	PAD[70];
 
-	
-	uint8	uart0data;		
+	uint8	uart0data;
 	uint8	uart0imr;
 	uint8	uart0fcr;
 	uint8	uart0lcr;
@@ -175,9 +150,9 @@ typedef volatile struct {
 	uint8	uart0lsr;
 	uint8	uart0msr;
 	uint8	uart0scratch;
-	uint8	PAD[248];		
+	uint8	PAD[248];
 
-	uint8	uart1data;		
+	uint8	uart1data;
 	uint8	uart1imr;
 	uint8	uart1fcr;
 	uint8	uart1lcr;
@@ -188,7 +163,7 @@ typedef volatile struct {
 	uint32	PAD[126];
 
 	
-	uint32	pmucontrol;		
+	uint32	pmucontrol;
 	uint32	pmucapabilities;
 	uint32	pmustatus;
 	uint32	res_state;
@@ -202,14 +177,14 @@ typedef volatile struct {
 	uint32	res_timer;
 	uint32	clkstretch;
 	uint32	pmuwatchdog;
-	uint32	gpiosel;		
-	uint32	gpioenable;		
+	uint32	gpiosel;
+	uint32	gpioenable;
 	uint32	res_req_timer_sel;
 	uint32	res_req_timer;
 	uint32	res_req_mask;
 	uint32	PAD;
-	uint32	chipcontrol_addr;	
-	uint32	chipcontrol_data;	
+	uint32	chipcontrol_addr;
+	uint32	chipcontrol_data;
 	uint32	regcontrol_addr;
 	uint32	regcontrol_data;
 	uint32	pllcontrol_addr;
@@ -844,51 +819,9 @@ typedef volatile struct {
 #define RES5354_BB_PLL_PU		19	
 
 
-
-#define PMU1_PLL0_PLLCTL0		0
-#define PMU1_PLL0_PC0_P1DIV_MASK	0x00f00000
-#define PMU1_PLL0_PC0_P1DIV_SHIFT	20
-#define PMU1_PLL0_PC0_P2DIV_MASK	0x0f000000
-#define PMU1_PLL0_PC0_P2DIV_SHIFT	24
-
-
-#define PMU1_PLL0_PLLCTL1		1
-#define PMU1_PLL0_PC1_M1DIV_MASK	0x000000ff
-#define PMU1_PLL0_PC1_M1DIV_SHIFT	0
-#define PMU1_PLL0_PC1_M2DIV_MASK	0x0000ff00
-#define PMU1_PLL0_PC1_M2DIV_SHIFT	8
-#define PMU1_PLL0_PC1_M3DIV_MASK	0x00ff0000
-#define PMU1_PLL0_PC1_M3DIV_SHIFT	16
-#define PMU1_PLL0_PC1_M4DIV_MASK	0xff000000
-#define PMU1_PLL0_PC1_M4DIV_SHIFT	24
-
 #define DOT11MAC_880MHZ_CLK_DIVISOR_SHIFT 8
 #define DOT11MAC_880MHZ_CLK_DIVISOR_MASK (0xFF << DOT11MAC_880MHZ_CLK_DIVISOR_SHIFT)
 #define DOT11MAC_880MHZ_CLK_DIVISOR_VAL  (0xE << DOT11MAC_880MHZ_CLK_DIVISOR_SHIFT)
-
-
-#define PMU1_PLL0_PLLCTL2		2
-#define PMU1_PLL0_PC2_M5DIV_MASK	0x000000ff
-#define PMU1_PLL0_PC2_M5DIV_SHIFT	0
-#define PMU1_PLL0_PC2_M6DIV_MASK	0x0000ff00
-#define PMU1_PLL0_PC2_M6DIV_SHIFT	8
-#define PMU1_PLL0_PC2_NDIV_MODE_MASK	0x000e0000
-#define PMU1_PLL0_PC2_NDIV_MODE_SHIFT	17
-#define PMU1_PLL0_PC2_NDIV_INT_MASK	0x1ff00000
-#define PMU1_PLL0_PC2_NDIV_INT_SHIFT	20
-
-
-#define PMU1_PLL0_PLLCTL3		3
-#define PMU1_PLL0_PC3_NDIV_FRAC_MASK	0x00ffffff
-#define PMU1_PLL0_PC3_NDIV_FRAC_SHIFT	0
-
-
-#define PMU1_PLL0_PLLCTL4		4
-
-
-#define PMU1_PLL0_PLLCTL5		5
-#define PMU1_PLL0_PC5_CLK_DRV_MASK 0xffffff00
-#define PMU1_PLL0_PC5_CLK_DRV_SHIFT 8
 
 
 #define PMU2_PHY_PLL_PLLCTL		4
@@ -1065,84 +998,10 @@ typedef volatile struct {
 #define CST4315_CBUCK_MODE_LPBURST	0x00000c00
 
 
-
 #define PMU_MAX_TRANSITION_DLY	15000
 
 
 #define PMURES_UP_TRANSITION	2
-
-#if !defined(BCMDONGLEHOST)
-
-
-#define	ECI_INLO_TASKTYPE_MASK	0x0000000f 
-#define ECI_INLO_TASKTYPE_SHIFT 0
-#define	ECI_INLO_PKTDUR_MASK	0x000000f0 
-#define ECI_INLO_PKTDUR_SHIFT	4
-#define	ECI_INLO_ROLE_MASK	0x00000100 
-#define ECI_INLO_ROLE_SHIFT	8
-#define	ECI_INLO_MLP_MASK	0x00000e00 
-#define ECI_INLO_MLP_SHIFT	9
-#define	ECI_INLO_TXPWR_MASK	0x000ff000 
-#define ECI_INLO_TXPWR_SHIFT	12
-#define	ECI_INLO_RSSI_MASK	0x0ff00000 
-#define ECI_INLO_RSSI_SHIFT	20
-#define	ECI_INLO_VAD_MASK	0x10000000 
-#define ECI_INLO_VAD_SHIFT	28
-
-
-
-#define BT_ACL				0x00
-#define BT_SCO				0x01
-#define BT_eSCO				0x02
-#define BT_A2DP				0x03
-#define BT_SNIFF			0x04
-#define BT_PAGE_SCAN			0x05
-#define BT_INQUIRY_SCAN			0x06
-#define BT_PAGE				0x07
-#define BT_INQUIRY			0x08
-#define BT_MSS				0x09
-#define BT_PARK				0x0a
-#define BT_RSSISCAN			0x0b
-#define BT_MD_ACL			0x0c
-#define BT_MD_eSCO			0x0d
-#define BT_SCAN_WITH_SCO_LINK		0x0e
-#define BT_SCAN_WITHOUT_SCO_LINK	0x0f
-
-
-#define BT_MASTER			0
-#define BT_SLAVE			1
-
-#define BT_LOWEST_PRIO			0x0
-#define BT_HIGHEST_PRIO			0x3
-
-
-
-
-
-
-
-
-
-#define	ECI_OUT_CHANNEL_MASK		0x0000000f  
-#define ECI_OUT_CHANNEL_SHIFT		0
-#define ECI_OUT_BW_MASK			0x00000070  
-#define ECI_OUT_BW_SHIFT		4
-#define	ECI_OUT_ANTENNA_MASK		0x00000080  
-#define ECI_OUT_ANTENNA_SHIFT		7
-#define	ECI_OUT_CUR_TXPOWER_MASK	0x00000f00  
-#define ECI_OUT_CUR_TXPOWER_SHIFT	8
-#define	ECI_OUT_CUR_RSSI_MASK		0x0000f000  
-#define ECI_OUT_CUR_RSSI_SHIFT		12
-#define	ECI_OUT_SIMUL_TXRX_MASK		0x00010000  
-#define ECI_OUT_SIMUL_TXRX_SHIFT	16
-#define ECI_OUT_FM_DISABLE_MASK		0x00040000  
-#define ECI_OUT_FM_DISABLE_SHIFT	18
-
-
-#define ECI_WL_BITS			0xbffb0000
-#endif 
-
-
 
 
 #define ECI_BW_20   0x0

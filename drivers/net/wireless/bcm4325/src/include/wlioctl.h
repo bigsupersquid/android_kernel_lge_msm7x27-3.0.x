@@ -37,9 +37,6 @@
 #include <proto/bcmevent.h>
 #include <proto/802.11.h>
 #include <bcmwifi.h>
-#include <qmath_complex.h>
-
-
 
 #define ACTION_FRAME_SIZE 1040
 
@@ -51,16 +48,6 @@ typedef struct wl_action_frame {
 } wl_action_frame_t;
 
 #define WL_WIFI_ACTION_FRAME_SIZE sizeof(struct wl_action_frame)
-
-typedef struct wl_af_params {
-	uint32 			channel;
-	int32 			dwell_time;
-	struct ether_addr 	BSSID;
-	wl_action_frame_t	action_frame;
-} wl_af_params_t;
-
-#define WL_WIFI_AF_PARAMS_SIZE sizeof(struct wl_af_params)
-
 
 #define BWL_DEFAULT_PACKING
 #include <packed_section_start.h>
@@ -75,15 +62,23 @@ typedef struct wl_af_params {
 #define RWL_WIFI_FOUND_PEER		0x0A 
 #define RWL_ACTION_WIFI_FRAG_TYPE	0x55 
 
+typedef struct ssid_info
+{
+	uint8		ssid_len;
+	uint8		ssid[32];
+} ssid_info_t;
+
+typedef struct cnt_rx
+{
+	uint32 cnt_rxundec;
+	uint32 cnt_rxframe;
+} cnt_rx_t;
 
 
 #define RWL_REF_MAC_ADDRESS_OFFSET	17
 #define RWL_DUT_MAC_ADDRESS_OFFSET	23
 #define RWL_WIFI_CLIENT_CHANNEL_OFFSET	50
 #define RWL_WIFI_SERVER_CHANNEL_OFFSET	51
-
-
-
 
 
 #define	WL_BSS_INFO_VERSION	108		
@@ -131,17 +126,20 @@ typedef struct wlc_ssid {
 #define WL_BSSTYPE_INDEP 0
 #define WL_BSSTYPE_ANY   2
 
+#define WL_SCANFLAGS_PASSIVE 0x01
+#define WL_SCANFLAGS_PROHIBITED	0x04
+
 typedef struct wl_scan_params {
-	wlc_ssid_t ssid;		
-	struct ether_addr bssid;	
-	int8 bss_type;			
-	int8 scan_type;			
-	int32 nprobes;			
-	int32 active_time;		
-	int32 passive_time;		
-	int32 home_time;		
-	int32 channel_num;		
-	uint16 channel_list[1];		
+	wlc_ssid_t ssid;
+	struct ether_addr bssid;
+	int8 bss_type;
+	int8 scan_type;
+	int32 nprobes;
+	int32 active_time;
+	int32 passive_time;
+	int32 home_time;
+	int32 channel_num;
+	uint16 channel_list[1];
 } wl_scan_params_t;
 
 #define WL_SCAN_PARAMS_FIXED_SIZE 64
@@ -150,12 +148,12 @@ typedef struct wl_scan_params {
 #define WL_SCAN_PARAMS_COUNT_MASK 0x0000ffff
 #define WL_SCAN_PARAMS_NSSID_SHIFT 16
 
-#define WL_SCAN_ACTION_START      1
-#define WL_SCAN_ACTION_CONTINUE   2
-#define WL_SCAN_ACTION_ABORT      3
+#define WL_SCAN_ACTION_START		1
+#define WL_SCAN_ACTION_CONTINUE		2
+#define WL_SCAN_ACTION_ABORT		3
+#define WL_SCAN_RESULTS_NO_MEM		4
 
 #define ISCAN_REQ_VERSION 1
-
 
 typedef struct wl_iscan_params {
 	uint32 version;
@@ -243,13 +241,10 @@ typedef struct wl_join_params {
 	wlc_ssid_t ssid;
 	wl_assoc_params_t params;	
 } wl_join_params_t;
+#define WL_JOIN_PARAMS_FIXED_SIZE 	(sizeof(wl_join_params_t) - sizeof(chanspec_t))
 
 #define WLC_CNTRY_BUF_SZ	4		
 
-#define WL_JOIN_PARAMS_FIXED_SIZE 	(sizeof(wl_join_params_t) - sizeof(chanspec_t))
-
-
-#if defined(BCMSUP_PSK) || defined(BCMDONGLEHOST)
 typedef enum sup_auth_status {
 	
 	WLC_SUP_DISCONNECTED = 0,
@@ -273,7 +268,6 @@ typedef enum sup_auth_status {
 	WLC_SUP_KEYXCHANGE_WAIT_G1,	
 	WLC_SUP_KEYXCHANGE_PREP_G2	
 } sup_auth_status_t;
-#endif 
 
 
 #define	CRYPTO_ALGO_OFF			0
@@ -284,6 +278,7 @@ typedef enum sup_auth_status {
 #define CRYPTO_ALGO_AES_OCB_MSDU	5
 #define CRYPTO_ALGO_AES_OCB_MPDU	6
 #define CRYPTO_ALGO_NALG		7
+#define CRYPTO_ALGO_SMS4		11
 
 #define WSEC_GEN_MIC_ERROR	0x0001
 #define WSEC_GEN_REPLAY		0x0002
@@ -334,6 +329,7 @@ typedef struct {
 #define AES_ENABLED		0x0004
 #define WSEC_SWFLAG		0x0008
 #define SES_OW_ENABLED		0x0040	
+#define SMS4_ENABLED		0x0100
 
 
 #define WPA_AUTH_DISABLED	0x0000	
@@ -345,20 +341,19 @@ typedef struct {
 #define WPA2_AUTH_PSK		0x0080	
 #define BRCM_AUTH_PSK           0x0100  
 #define BRCM_AUTH_DPT		0x0200	
+#define WPA_AUTH_WAPI		0x0400	
 
 #define WPA_AUTH_PFN_ANY	0xffffffff	
 
 
 #define	MAXPMKID		16
 
-typedef struct _pmkid
-{
+typedef struct _pmkid {
 	struct ether_addr	BSSID;
 	uint8			PMKID[WPA2_PMKID_LEN];
 } pmkid_t;
 
-typedef struct _pmkid_list
-{
+typedef struct _pmkid_list {
 	uint32	npmkid;
 	pmkid_t	pmkid[1];
 } pmkid_list_t;
@@ -736,19 +731,13 @@ typedef struct wl_ioctl {
 #define WLC_LAST				307	
 
 
-
-#define WL_AUTH_OPEN_SYSTEM		0	
-#define WL_AUTH_SHARED_KEY		1	
-#define WL_AUTH_OPEN_SHARED		2	
-
-
 #define WL_RADIO_SW_DISABLE		(1<<0)
 #define WL_RADIO_HW_DISABLE		(1<<1)
 #define WL_RADIO_MPC_DISABLE		(1<<2)
 #define WL_RADIO_COUNTRY_DISABLE	(1<<3)	
 
 
-#define WL_TXPWR_OVERRIDE	(1<<31)
+#define WL_TXPWR_OVERRIDE	(1U<<31)
 
 #define WL_PHY_PAVARS_LEN	6	
 
@@ -794,6 +783,7 @@ typedef struct wl_ioctl {
 #define	WLC_PHY_TYPE_G		2
 #define	WLC_PHY_TYPE_N		4
 #define	WLC_PHY_TYPE_LP		5
+#define	WLC_PHY_TYPE_SSN	6
 #define	WLC_PHY_TYPE_NULL	0xf
 
 
@@ -922,7 +912,6 @@ typedef struct wl_aci_args {
 #define WL_COEX_VAL		0x00000008
 #define WL_RTDC_VAL		0x00000010
 #define WL_BTA_VAL		0x00000040
-#define WL_P2P_VAL		0x00000200
 
 
 #define	WL_LED_NUMGPIO		16	
@@ -960,13 +949,9 @@ typedef struct wl_aci_args {
 #define WL_EVENTING_MASK_LEN	16
 
 
-
-
-
 #define WL_JOIN_PREF_RSSI	1	
 #define WL_JOIN_PREF_WPA	2	
 #define WL_JOIN_PREF_BAND	3	
-#define WL_JOIN_PREF_RSSI_DELTA	4	
 
 
 #define WLJP_BAND_ASSOC_PREF	255	
@@ -1232,8 +1217,7 @@ typedef struct {
 #define WLC_ROAM_TRIGGER_DEFAULT	0 
 #define WLC_ROAM_TRIGGER_BANDWIDTH	1 
 #define WLC_ROAM_TRIGGER_DISTANCE	2 
-#define WLC_ROAM_TRIGGER_AUTO		3 
-#define WLC_ROAM_TRIGGER_MAX_VALUE	3 
+#define WLC_ROAM_TRIGGER_MAX_VALUE	2 
 
 
 enum {
@@ -1260,6 +1244,7 @@ enum {
 
 #define PFN_VERSION			1
 
+#define MAX_PFN_LIST_COUNT	16
 
 typedef struct wl_pfn_param {
 	int32 version;				
@@ -1274,7 +1259,7 @@ typedef struct wl_pfn {
 	int32			bss_type;		
 	int32			infra;			
 	int32			auth;			
-	int32			wpa_auth;		
+	uint32			wpa_auth;		
 	int32			wsec;			
 #ifdef WLPFN_AUTO_CONNECT
 	union {
@@ -1375,19 +1360,11 @@ typedef struct wl_keep_alive_pkt {
 
 #define WL_KEEP_ALIVE_FIXED_LEN	OFFSETOF(wl_keep_alive_pkt_t, data)
 
+typedef enum wl_pkt_filter_type {
+	WL_PKT_FILTER_TYPE_PATTERN_MATCH	
+} wl_pkt_filter_type_t;
 
-
-
-
-typedef enum WL_PKT_FILTER_TYPE {
-
-	
-	WL_PKT_FILTER_TYPE_PATTERN_MATCH
-
-	
-
-} WL_PKT_FILTER_TYPE;
-
+#define WL_PKT_FILTER_TYPE wl_pkt_filter_type_t
 
 
 typedef struct wl_pkt_filter_pattern {

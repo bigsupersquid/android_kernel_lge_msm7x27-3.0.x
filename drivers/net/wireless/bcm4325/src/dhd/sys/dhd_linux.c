@@ -158,8 +158,8 @@ typedef struct dhd_info {
 	bool set_multicast;
 	bool set_macaddress;
 	struct ether_addr macvalue;
-	atomic_t pend_8021x_cnt;
 	wait_queue_head_t ctrl_wait;
+	atomic_t pend_8021x_cnt;
 } dhd_info_t;
 
 /* Definitions to provide path to the firmware and nvram
@@ -1584,11 +1584,18 @@ dhd_open(struct net_device *net)
 #endif
 	int ifidx;
 
+	wl_control_wl_start(net);  /* start if needed */
+
 	ifidx = dhd_net2idx(dhd, net);
 	DHD_TRACE(("%s: ifidx %d\n", __FUNCTION__, ifidx));
 
-	ASSERT(ifidx == 0);
+	if ((dhd->iflist[ifidx]) && (dhd->iflist[ifidx]->state == WLC_E_IF_DEL)) {
+		DHD_ERROR(("%s: Error: called when IF already deleted\n", __FUNCTION__));
+		return -1;
+	}
 
+	if (ifidx == 0) { /* do it only for primary eth0 */
+		atomic_set(&dhd->pend_8021x_cnt, 0);
 
 	memcpy(net->dev_addr, dhd->pub.mac.octet, ETHER_ADDR_LEN);
 
@@ -1600,6 +1607,7 @@ dhd_open(struct net_device *net)
 		dhd->iflist[ifidx]->net->features &= ~NETIF_F_IP_CSUM;
 #endif
 
+	}
 	/* Allow transmit calls */
 	netif_start_queue(net);
 	dhd->pub.up = 1;
@@ -1624,7 +1632,7 @@ dhd_osl_detach(osl_t *osh)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && 1
 	up(&dhd_registration_sem);
-#endif 
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) */
 
 }
 
@@ -1837,6 +1845,9 @@ dhd_bus_start(dhd_pub_t *dhdp)
 {
 	int ret = -1;
 	dhd_info_t *dhd = (dhd_info_t*)dhdp->info;
+#ifdef EMBEDDED_PLATFORM
+	char iovbuf[WL_EVENTING_MASK_LEN + 12];	/*  Room for "event_msgs" + '\0' + bitvec  */
+#endif /* EMBEDDED_PLATFORM */
 
 	ASSERT(dhd);
 
@@ -1844,19 +1855,12 @@ dhd_bus_start(dhd_pub_t *dhdp)
 
 	/* try to download image and nvram to the dongle */
 	if  (dhd->pub.busstate == DHD_BUS_DOWN) {
-		WAKE_LOCK_INIT(dhdp, WAKE_LOCK_DOWNLOAD, "dhd_bus_start");
-		WAKE_LOCK(dhdp, WAKE_LOCK_DOWNLOAD);
 		if (!(dhd_bus_download_firmware(dhd->pub.bus, dhd->pub.osh,
 		                                fw_path, nv_path))) {
 			DHD_ERROR(("%s: dhdsdio_probe_download failed. firmware = %s nvram = %s\n",
 			           __FUNCTION__, fw_path, nv_path));
-			WAKE_UNLOCK(dhdp, WAKE_LOCK_DOWNLOAD);
-			WAKE_LOCK_DESTROY(dhdp, WAKE_LOCK_DOWNLOAD);
 			return -1;
 		}
-
-		WAKE_UNLOCK(dhdp, WAKE_LOCK_DOWNLOAD);
-		WAKE_LOCK_DESTROY(dhdp, WAKE_LOCK_DOWNLOAD);
 	}
 
 	/* Start the watchdog timer */
@@ -1872,8 +1876,8 @@ dhd_bus_start(dhd_pub_t *dhdp)
 
 #if defined(OOB_INTR_ONLY)
 	/* Host registration for OOB interrupt */
-	if ((ret = bcmsdh_register_oob_intr(dhdp)) != 0) {
-		del_timer(&dhd->timer);
+	if (bcmsdh_register_oob_intr(dhdp)) {
+		del_timer_sync(&dhd->timer);
 		dhd->wd_timer_valid = FALSE;
 		DHD_ERROR(("%s Host failed to resgister for OOB\n", __FUNCTION__));
 		return -ENODEV;
@@ -1883,11 +1887,9 @@ dhd_bus_start(dhd_pub_t *dhdp)
 	dhd_enable_oob_intr(dhd->pub.bus, TRUE);
 #endif /* defined(OOB_INTR_ONLY) */
 
-	atomic_set(&dhd->pend_8021x_cnt, 0);
-
 	/* If bus is not ready, can't come up */
 	if (dhd->pub.busstate != DHD_BUS_DATA) {
-		del_timer(&dhd->timer);
+		del_timer_sync(&dhd->timer);
 		dhd->wd_timer_valid = FALSE;
 		DHD_ERROR(("%s failed bus is not ready\n", __FUNCTION__));
 		return -ENODEV;

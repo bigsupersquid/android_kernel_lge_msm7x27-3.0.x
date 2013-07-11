@@ -96,9 +96,7 @@ typedef struct wl_iw {
 	struct ether_addr spy_addr[IW_MAX_SPY];
 	struct iw_quality spy_qual[IW_MAX_SPY];
 	void  *wlinfo;
-#if defined(BCMDONGLEHOST)
 	dhd_pub_t * pub;
-#endif 
 } wl_iw_t;
 
 struct wl_ctrl {
@@ -186,6 +184,7 @@ extern void wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data);
 extern int wl_iw_get_wireless_stats(struct net_device *dev, struct iw_statistics *wstats);
 int wl_iw_attach(struct net_device *dev, void * dhdp);
 void wl_iw_detach(void);
+int wl_control_wl_start(struct net_device *dev);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define IWE_STREAM_ADD_EVENT(info, stream, ends, iwe, extra) \

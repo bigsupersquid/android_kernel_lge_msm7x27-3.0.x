@@ -28,12 +28,8 @@
 #include <osl.h>
 #include <bcmutils.h>
 
-#ifndef BCMDONGLEHOST
-#include <wlc_cfg.h>
-#else
 #include <dngl_stats.h>
 #include <dhd.h>
-#endif
 
 #include <wlioctl.h>
 #include <wl_iw.h>
@@ -44,13 +40,8 @@
 #endif /* CONFIG_LGE_BCM432X_PATCH */
 /* LGE_CHANGE_E [yoohoo@lge.com] 2009-05-14, support start/stop */
 
-#ifndef BCMDONGLEHOST
-#include <wlc_pub.h>
-#include <wl_dbg.h>
-#else
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
-#endif
 
 #ifdef CUSTOMER_HW
 extern  void bcm_wlan_power_off(int);
