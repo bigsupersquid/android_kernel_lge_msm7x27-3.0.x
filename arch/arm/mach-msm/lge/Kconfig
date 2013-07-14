@@ -43,6 +43,7 @@ config MACH_MSM7X27_THUNDERC
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
 	select MACH_LGE
+	select CPU_V6K
 	bool "MSM7x27 THUNDER CDMA"
 	help
 	  Support for the LGE MSM7x27 THUNDER CDMA board.
