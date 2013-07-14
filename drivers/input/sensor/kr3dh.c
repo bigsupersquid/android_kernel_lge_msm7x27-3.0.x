@@ -93,7 +93,7 @@ module_param_named(debug_mask, kr3dh_debug_mask, int,
 #define CTRL_REG2		0x21	/* filter setting */
 #define CTRL_REG3		0x22	/* interrupt control reg */
 #define CTRL_REG4		0x23
-#define CTRL_REG5		0x24	/* scale selection */
+#define CTRL_REG5		0x23 //0x24	/* scale selection */
 
 #define PM_OFF          	0x00
 #define PM_NORMAL       	0x20
@@ -420,13 +420,21 @@ static void kr3dh_report_values(struct kr3dh_data *kr, int *xyz)
 
 static int kr3dh_enable(struct kr3dh_data *kr)
 {
+	int err;
+
 	if (!atomic_cmpxchg(&kr->enabled, 0, 1)) {
 
+		err = kr3dh_device_power_on(kr);
+		if (err < 0) {
+			atomic_set(&kr->enabled, 0);
+			return err;
+		}
 #if USE_WORK_QUEUE
 		schedule_delayed_work(&kr->input_work,
 				      msecs_to_jiffies(kr->
 						       pdata->poll_interval));
 #endif
+
 	}
 
 	return 0;
@@ -438,6 +446,7 @@ static int kr3dh_disable(struct kr3dh_data *kr)
 #if USE_WORK_QUEUE
 		cancel_delayed_work_sync(&kr->input_work);
 #endif
+		kr3dh_device_power_off(kr);
 	}
 
 	return 0;
