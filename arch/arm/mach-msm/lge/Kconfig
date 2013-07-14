@@ -43,7 +43,6 @@ config MACH_MSM7X27_THUNDERC
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
 	select MACH_LGE
-	select CPU_V6K
 	bool "MSM7x27 THUNDER CDMA"
 	help
 	  Support for the LGE MSM7x27 THUNDER CDMA board.
@@ -60,6 +59,16 @@ config MACH_MSM7X27_THUNDERC_VERIZON
  
 config MACH_MSM7X27_THUNDERC_SPRINT
 	bool "MSM7x27 THUNDER CDMA Sprint"
+	select CPU_32v6
+	select CPU_32v6K
+	select CPU_ABRT_EV6
+	select CPU_PABRT_V6
+	select CPU_CACHE_V6
+	select CPU_CACHE_VIPT
+	select CPU_CP15_MMU
+	select CPU_HAS_ASID if MMU
+	select CPU_COPY_V6 if MMU
+	select CPU_TLB_V6 if MMU
 	help
 	  Support for the LGE MSM7x27 THUNDER CDMA Sprint board.
 endchoice
