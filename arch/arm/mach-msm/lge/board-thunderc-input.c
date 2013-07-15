@@ -161,7 +161,7 @@ static struct keyreset_platform_data thunderc_reset_keys_pdata = {
 	.keys_down = {
 		KEY_BACK,
 		KEY_VOLUMEDOWN,
-		KEY_SEARCH,
+		KEY_MENU,
 		0
 	},
 };
@@ -324,7 +324,7 @@ static int Accel_Proximity_Ecompass_power_save(void)
 			return -EINVAL;
 		}
 
-		rc = regulator_set_voltage(gp6_vreg, 2800000, 2800000);
+		rc = regulator_set_voltage(gp6_vreg, 2900000, 2900000);
 		if (rc) {
 			pr_err("set_voltage gp6_vreg failed, rc=%d\n", rc);
 			regulator_put(gp3_vreg);

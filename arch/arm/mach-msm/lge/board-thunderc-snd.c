@@ -47,16 +47,16 @@ static struct snd_endpoint snd_endpoints_list[] = {
 	SND(SPEAKER_RING, 7),
 	SND(HEADSET_AND_SPEAKER, 7),
 	SND(VOICE_RECORDER, 8),
-	SND(FM_HEADSET, 9),
-	SND(FM_SPEAKER, 10),
-	SND(BT, 12),
+	SND(FM_HEADSET, 10),
+	SND(FM_SPEAKER, 11),
+	SND(BT, 13),
 	SND(TTY_HEADSET, 14),
 	SND(TTY_VCO, 15),
 	SND(TTY_HCO, 16),
 	SND(TTY_HCO_SPEAKER, 17),
 	SND(HANDSET_VR, 19),
 	SND(HEADSET_VR, 20),
-	SND(BT_VR, 22),
+	SND(BT_VR, 23),
 	SND(CURRENT, 29),
 /* LGE_CHANGE_E, [junyoub.an] , 2010-02-12, Define sound device*/
 
@@ -76,22 +76,7 @@ struct platform_device msm_device_snd = {
 		.platform_data = &msm_device_snd_endpoints
 	},
 };
-/* It is related that CASE 284824 which vdec_open failed */
-#if 1
-#define DEC0_FORMAT ((1<<MSM_ADSP_CODEC_AAC)|(1<<MSM_ADSP_CODEC_WMA)| \
-	(1<<MSM_ADSP_CODEC_WMAPRO)|(1<<MSM_ADSP_CODEC_AMRWB)| \
-	(1<<MSM_ADSP_CODEC_AMRNB)|(1<<MSM_ADSP_CODEC_WAV)| \
-	(1<<MSM_ADSP_CODEC_ADPCM)|(1<<MSM_ADSP_CODEC_YADPCM)| \
-	(1<<MSM_ADSP_CODEC_EVRC)|(1<<MSM_ADSP_CODEC_QCELP))
-#define DEC1_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP))
-#define DEC2_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP)| \
-	(1<<MSM_ADSP_CODEC_MP3))
-#define DEC3_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP))
-#define DEC4_FORMAT (1<<MSM_ADSP_CODEC_MIDI)
-#else
+
 #define DEC0_FORMAT ((1<<MSM_ADSP_CODEC_MP3)| \
 		    (1<<MSM_ADSP_CODEC_AAC)|(1<<MSM_ADSP_CODEC_WMA)| \
 		    (1<<MSM_ADSP_CODEC_WMAPRO)|(1<<MSM_ADSP_CODEC_AMRWB)| \
@@ -117,7 +102,6 @@ struct platform_device msm_device_snd = {
 		    (1<<MSM_ADSP_CODEC_ADPCM)|(1<<MSM_ADSP_CODEC_YADPCM)| \
 		    (1<<MSM_ADSP_CODEC_EVRC)|(1<<MSM_ADSP_CODEC_QCELP))
 #define DEC4_FORMAT (1<<MSM_ADSP_CODEC_MIDI)
-#endif
 
 static unsigned int dec_concurrency_table[] = {
 	/* Audio LP */
@@ -177,9 +161,9 @@ static unsigned int dec_concurrency_table[] = {
 
 static struct msm_adspdec_info dec_info_list[] = {
 	DEC_INFO("AUDPLAY0TASK", 13, 0, 11), /* AudPlay0BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY1TASK", 14, 1, 5),  /* AudPlay1BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY2TASK", 15, 2, 5),  /* AudPlay2BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY3TASK", 16, 3, 4),  /* AudPlay3BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY1TASK", 14, 1, 11),  /* AudPlay1BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY2TASK", 15, 2, 11),  /* AudPlay2BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY3TASK", 16, 3, 11),  /* AudPlay3BitStreamCtrlQueue */
 	DEC_INFO("AUDPLAY4TASK", 17, 4, 1),  /* AudPlay4BitStreamCtrlQueue */
 };
 
