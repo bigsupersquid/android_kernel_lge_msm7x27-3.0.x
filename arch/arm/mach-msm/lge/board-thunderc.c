@@ -42,7 +42,7 @@
 #include <mach/pmic.h>
 #include <mach/msm_iomap.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/msm_hsusb.h>
+//#include <mach/msm_hsusb.h>
 #include <mach/rpc_hsusb.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/msm_serial_hs.h>
