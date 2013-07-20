@@ -45,6 +45,7 @@
 
 #define ONCRPC_CHARGER_API_VERSIONS_PROC	0xffffffff
 
+#define ONCRPC_CHG_GET_GENERAL_STATUS_PROC	12
 #define ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC 20
 #define BATT_RPC_TIMEOUT    5000	/* 5 sec */
 
@@ -142,6 +143,10 @@ struct rpc_reply_batt_chg_v1 {
 	u32 batt_valid_id;
 	u32 batt_therm;
 	u32	batt_temp;
+	u32 tmp1;
+	u32 tmp2;
+	u32 tmp3;
+#if 0
 	u32	charger_status;
 	u32	charger_type;
 	u32	battery_status;
@@ -149,10 +154,29 @@ struct rpc_reply_batt_chg_v1 {
 	u32 battery_charging;
 	u32 battery_valid;
 	u32 battery_capacity;
+#endif
 };
 
 struct rpc_reply_batt_chg_v2 {
 	struct rpc_reply_batt_chg_v1	v1;
+
+	u32	is_charger_valid;
+	u32	is_charging;
+	u32	is_battery_valid;
+	u32	ui_event;
+};
+
+struct rpc_reply_batt_chg_v3 {
+	struct rpc_reply_hdr hdr;
+	u32 	more_data;
+
+	u32	charger_status;
+	u32	charger_type;
+	u32	battery_status;
+};
+
+struct rpc_reply_batt_chg_v4 {
+	struct rpc_reply_batt_chg_v3	v3;
 
 	u32	is_charger_valid;
 	u32	is_charging;
@@ -166,6 +190,13 @@ union rpc_reply_batt_chg {
 };
 
 static union rpc_reply_batt_chg rep_batt_chg;
+
+union rpc_reply_batt_chg_1 {
+	struct rpc_reply_batt_chg_v3	v3;
+	struct rpc_reply_batt_chg_v4	v4;
+};
+
+static union rpc_reply_batt_chg_1 rep_batt_chg_1;
 
 struct msm_battery_info {
 	u32 voltage_max_design;
@@ -346,6 +377,37 @@ static int msm_batt_get_batt_chg_status(void)
 	} req_batt_chg;
 	struct rpc_reply_batt_chg_v1 *v1p;
 
+	struct rpc_req_batt_chg_1 {
+		struct rpc_request_hdr hdr;
+		u32 more_data;
+	} req_batt_chg_1;
+	struct rpc_reply_batt_chg_v3 *v3p;
+
+
+	req_batt_chg_1.more_data = cpu_to_be32(1);
+
+	memset(&rep_batt_chg_1, 0, sizeof(rep_batt_chg_1));
+
+	v3p = &rep_batt_chg_1.v3;
+	rc = msm_rpc_call_reply(msm_batt_info.chg_ep,
+				ONCRPC_CHG_GET_GENERAL_STATUS_PROC,
+				&req_batt_chg_1, sizeof(req_batt_chg_1),
+				&rep_batt_chg_1, sizeof(rep_batt_chg_1),
+				msecs_to_jiffies(BATT_RPC_TIMEOUT));
+	if (rc < 0) {
+		pr_err("%s: ERROR. msm_rpc_call_reply failed! proc=%d rc=%d\n",
+		       __func__, ONCRPC_CHG_GET_GENERAL_STATUS_PROC, rc);
+		return rc;
+	} else if (be32_to_cpu(v3p->more_data)) {
+		be32_to_cpu_self(v3p->charger_status);
+		be32_to_cpu_self(v3p->charger_type);
+		v3p->battery_status = be32_to_cpu(0);		//be32_to_cpu_self(v3p->battery_status);
+
+
+	} else {
+		pr_err("%s: No charger data in RPC reply\n", __func__);
+		return -EIO;
+	}
 	req_batt_chg.more_data = cpu_to_be32(1);
 
 	memset(&rep_batt_chg, 0, sizeof(rep_batt_chg));
@@ -366,27 +428,18 @@ static int msm_batt_get_batt_chg_status(void)
 		be32_to_cpu_self(v1p->batt_valid_id);
 		be32_to_cpu_self(v1p->batt_therm);
 		be32_to_cpu_self(v1p->batt_temp);
-		be32_to_cpu_self(v1p->battery_valid);
-		be32_to_cpu_self(v1p->battery_charging);
-//		v1p->charger_status=CHARGER_STATUS_INVALID;
-		v1p->battery_status=BATTERY_STATUS_GOOD;
-//		v1p->charger_type=CHARGER_TYPE_INVALID;
-		v1p->battery_capacity=be32_to_cpu(v1p->battery_level);
-#if 0
+
 		DBG_LIMIT("%s() \n ----- charger / battery status --------\n", __func__);
+		DBG_LIMIT("\t charger_status=%d\n", v3p->charger_status);
+		DBG_LIMIT("\t charger_type=%d\n", v3p->charger_type);
+		DBG_LIMIT("\t battery_status=%d\n", v3p->battery_status);
 		DBG_LIMIT("\t battery_level=%d\n", v1p->battery_level);
 		DBG_LIMIT("\t voltage_now=%d\n", v1p->voltage_now);
 		DBG_LIMIT("\t batt_valid_id=%d\n", v1p->batt_valid_id);
 		DBG_LIMIT("\t batt_therm=%d\n", v1p->batt_therm);
 		DBG_LIMIT("\t batt_temp=%d\n", v1p->batt_temp);
-		DBG_LIMIT("\t battery_valid=%d\n", v1p->battery_valid);
-		DBG_LIMIT("\t battery_charging=%d\n", v1p->battery_charging);
-		DBG_LIMIT("\t charger_status=%d\n", v1p->charger_status);
-		DBG_LIMIT("\t battery_status=%d\n", v1p->battery_status);
-		DBG_LIMIT("\t charger_type=%d\n", v1p->charger_type);
-#endif
 	} else {
-		pr_err("%s: No battery/charger data in RPC reply\n", __func__);
+		pr_err("%s: No battery data in LG_RPC reply\n", __func__);
 		return -EIO;
 	}
 
@@ -422,9 +475,9 @@ static void msm_batt_update_psy_status(void)
 		return;
 	}
 
-	charger_status = rep_batt_chg.v1.charger_status;
-	charger_type = rep_batt_chg.v1.charger_type;
-	battery_status = rep_batt_chg.v1.battery_status;
+	charger_status = rep_batt_chg_1.v3.charger_status;
+	charger_type = rep_batt_chg_1.v3.charger_type;
+	battery_status = BATTERY_STATUS_GOOD; //rep_batt_chg_1.v3.battery_status;
 	battery_level = rep_batt_chg.v1.battery_level;
 	voltage_now = rep_batt_chg.v1.voltage_now;
 	batt_temp = rep_batt_chg.v1.batt_temp;
