@@ -32,9 +32,6 @@
 #include <bcmutils.h>
 #include <hndsoc.h>
 #include <siutils.h>
-#if !defined(BCMDONGLEHOST)
-#include <bcmsrom.h>
-#endif /* !defined(BCMDONGLEHOST) */
 #include <osl.h>
 
 #include <bcmsdh.h>	/* BRCM API for SDIO clients (such as wl, dhd) */
@@ -583,45 +580,8 @@ int
 bcmsdh_query_device(void *sdh)
 {
 	bcmsdh_info_t *bcmsdh = (bcmsdh_info_t *)sdh;
-#ifdef BCMDONGLEHOST
 	bcmsdh->vendevid = (VENDOR_BROADCOM << 16) | 0;
-#else
-	uint8 *fn0cis[1];
-	int err;
-	char *vars;
-	uint varsz;
-	osl_t *osh = bcmsdh->osh;
 
-	bcmsdh->vendevid = ~(0);
-
-	if (!(fn0cis[0] = MALLOC(osh, SBSDIO_CIS_SIZE_LIMIT))) {
-		BCMSDH_ERROR(("%s: CIS malloc failed\n", __FUNCTION__));
-		return (bcmsdh->vendevid);
-	}
-
-	bzero(fn0cis[0], SBSDIO_CIS_SIZE_LIMIT);
-
-	if ((err = bcmsdh_cis_read(sdh, 0, fn0cis[0], SBSDIO_CIS_SIZE_LIMIT))) {
-		BCMSDH_ERROR(("%s: CIS read err %d, report unknown BRCM device\n",
-		              __FUNCTION__, err));
-		bcmsdh->vendevid = (VENDOR_BROADCOM << 16) | 0;
-		MFREE(osh, fn0cis[0], SBSDIO_CIS_SIZE_LIMIT);
-		return (bcmsdh->vendevid);
-	}
-
-	if (!err) {
-		if ((err = srom_parsecis(osh, fn0cis, 1, &vars, &varsz))) {
-			BCMSDH_ERROR(("%s: Error parsing CIS = %d\n", __FUNCTION__, err));
-			bcmsdh->vendevid = (VENDOR_BROADCOM << 16) | BCM4328_D11DUAL_ID;
-		} else {
-			bcmsdh->vendevid = (getintvar(vars, "vendid") << 16) |
-			                    getintvar(vars, "devid");
-			MFREE(osh, vars, varsz);
-		}
-	}
-
-	MFREE(osh, fn0cis[0], SBSDIO_CIS_SIZE_LIMIT);
-#endif /* BCMDONGLEHOST */
 	return (bcmsdh->vendevid);
 }
 

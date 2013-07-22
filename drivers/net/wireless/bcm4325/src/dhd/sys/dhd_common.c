@@ -263,7 +263,6 @@ exit:
 	return bcmerror;
 }
 
-#ifdef BCMDONGLEHOST
 /* Store the status of a connection attempt for later retrieval by an iovar */
 void dhd_store_conn_status(uint32 event, uint32 status, uint32 reason)
 {
@@ -278,7 +277,6 @@ void dhd_store_conn_status(uint32 event, uint32 status, uint32 reason)
 		dhd_conn_reason = reason;
 	}
 }
-#endif /* BCMDONGLEHOST */
 
 static int
 dhd_iovar_op(dhd_pub_t *dhd_pub, const char *name,
@@ -300,8 +298,7 @@ dhd_iovar_op(dhd_pub_t *dhd_pub, const char *name,
 	/* Set does NOT take qualifiers */
 	ASSERT(!set || (!params && !plen));
 
-	if ((vi = bcm_iovar_lookup(dhd_iovars, name)) == NULL)
-	{
+	if ((vi = bcm_iovar_lookup(dhd_iovars, name)) == NULL) { 
 		bcmerror = BCME_UNSUPPORTED;
 		goto exit;
 	}

@@ -871,9 +871,9 @@ dhd_prot_init(dhd_pub_t *dhd)
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 
-#ifdef BCMDONGLEHOST
+#ifdef EMBEDDED_PLATFORM 
 	ret = dhd_preinit_ioctls(dhd);
-#endif /* BCMDONGLEHOST */
+#endif /* EMBEDDED_PLATFORM  */
 
 	/* Always assumes wl for now */
 	dhd->iswl = TRUE;

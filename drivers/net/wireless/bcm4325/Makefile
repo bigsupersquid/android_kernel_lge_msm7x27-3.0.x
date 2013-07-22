@@ -39,7 +39,6 @@ SRCROOT = drivers/net/wireless/bcm4325/src
 EXTRA_CFLAGS = \
 	-DLINUX \
 	-DBCMDRIVER \
-	-DBCMDONGLEHOST \
 	-DDHDTHREAD \
 	-DBCMWPA2 \
 	-DBCMWAPI_WPI \
@@ -53,6 +52,7 @@ EXTRA_CFLAGS = \
 	-DBCMLXSDMMC \
 	-DBCMPLATFORM_BUS \
 	-DSDIO_ISR_THREAD \
+	-DEMBEDDED_PLATFORM \
 	-Wall -Wstrict-prototypes \
 	-I$(SRCROOT) \
 	-I$(SRCROOT)/include \

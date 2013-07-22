@@ -336,16 +336,6 @@ ai_setcoreidx(si_t *sih, uint coreidx)
 		sii->curwrap = sii->common_info->wrappers[coreidx];
 		break;
 
-#if !defined(BCMDONGLEHOST)
-	case PCI_BUS:
-		/* point bar0 window */
-		OSL_PCI_WRITE_CONFIG(sii->osh, PCI_BAR0_WIN, 4, addr);
-		regs = sii->curmap;
-		/* point bar0 2nd 4KB window */
-		OSL_PCI_WRITE_CONFIG(sii->osh, PCI_BAR0_WIN2, 4, wrap);
-		break;
-#endif /* !defined(BCMDONGLEHOST) */
-
 	case SPI_BUS:
 	case SDIO_BUS:
 		sii->curmap = regs = (void *)((uintptr)addr);
