@@ -222,7 +222,7 @@ static struct msm_battery_info msm_batt_info = {
 };
 
 static struct msm_battery_info msm_batt = {
-	.charger_status = CHARGER_STATUS_BAD,
+//	.charger_status = CHARGER_STATUS_BAD,
 	.charger_type = CHARGER_TYPE_INVALID,
 	.battery_status = BATTERY_STATUS_GOOD,
 	.battery_level = BATTERY_LEVEL_FULL,
@@ -354,7 +354,7 @@ struct batt_rep_chg_type {
 	struct rpc_reply_hdr hdr;
 	u32 more_data;
 
-	u32 charger_status;
+	u32 tmp5; //charger_status;
 	u32 charger_type;
 	u32 battery_status;
 	u32 battery_level;
@@ -392,7 +392,7 @@ static struct batt_rep_chg_type batt_rep;
 				__func__, rc);
 		return rc;
 	} else if be32_to_cpu(batt_req.more_data) {
-	msm_batt.charger_status=be32_to_cpu(batt_rep.charger_status);
+//	msm_batt.charger_status=be32_to_cpu(batt_rep.charger_status);
 	batt_rep.charger_type = be32_to_cpu(batt_rep.charger_type);
 	msm_batt.battery_status = be32_to_cpu(batt_rep.battery_status);
 	msm_batt.battery_level = be32_to_cpu(batt_rep.battery_level);
@@ -419,7 +419,7 @@ static struct batt_rep_chg_type batt_rep;
 	msm_batt.charger_type=charger_type;
 		DBG_LIMIT("\t battery_level=%d\n", msm_batt.battery_level);
 		DBG_LIMIT("\t charger_voltage=%d\n", msm_batt.charger_voltage);
-		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
+//		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
 		DBG_LIMIT("\t battery_status=%d\n", msm_batt.battery_status);
 		DBG_LIMIT("\t charger_type=%d\n", msm_batt.charger_type);
 	}
@@ -457,8 +457,8 @@ static int msm_batt_get_batt_batt_status(void)
 		be32_to_cpu_self(v1p->batt_valid_id);
 		be32_to_cpu_self(v1p->battery_therm);
 		be32_to_cpu_self(v1p->battery_temp);
-		be32_to_cpu_self(v1p->tmp1);
-		be32_to_cpu_self(v1p->tmp2);
+//		be32_to_cpu_self(v1p->tmp1);
+//		be32_to_cpu_self(v1p->tmp2);
 //		v1p->battery_capacity=be32_to_cpu(v1p->battery_level);
 #if 1
 		DBG_LIMIT(" battery_voltage=%d\n batt_valid_id=%d\n battery_therm=%d\n battery_temp=%d\n", v1p->battery_voltage,
@@ -502,7 +502,7 @@ static void msm_batt_update_psy_status(void)
 		return;
 	}
 
-	charger_status = msm_batt.charger_status;
+	charger_status = CHARGER_STATUS_INVALID; //msm_batt.charger_status;
 	charger_type = msm_batt.charger_type;
 	battery_status = msm_batt.battery_status;
 	battery_level = msm_batt.battery_level;
