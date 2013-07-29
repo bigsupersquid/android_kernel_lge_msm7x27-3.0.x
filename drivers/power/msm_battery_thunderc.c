@@ -419,7 +419,7 @@ static struct batt_rep_chg_type batt_rep;
 	msm_batt.charger_type=charger_type;
 		DBG_LIMIT("\t battery_level=%d\n", msm_batt.battery_level);
 		DBG_LIMIT("\t charger_voltage=%d\n", msm_batt.charger_voltage);
-//		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
+		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
 		DBG_LIMIT("\t battery_status=%d\n", msm_batt.battery_status);
 		DBG_LIMIT("\t charger_type=%d\n", msm_batt.charger_type);
 	}
@@ -525,10 +525,12 @@ static void msm_batt_update_psy_status(void)
 			DBG_LIMIT("BATT: USB charger plugged in\n");
 			msm_batt_info.current_chg_source = USB_CHG;
 			supp = &msm_psy_usb;
+			charger_status= CHARGER_STATUS_GOOD;
 		} else if (charger_type == CHARGER_TYPE_WALL) {
 			DBG_LIMIT("BATT: AC Wall changer plugged in\n");
 			msm_batt_info.current_chg_source = AC_CHG;
 			supp = &msm_psy_ac;
+			charger_status= CHARGER_STATUS_GOOD;
 		} else {
 			if (msm_batt_info.current_chg_source & AC_CHG)
 				DBG_LIMIT("BATT: AC Wall charger removed\n");
