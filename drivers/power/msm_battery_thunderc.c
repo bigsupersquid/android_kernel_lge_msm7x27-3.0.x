@@ -1015,7 +1015,6 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	msm_batt_info.voltage_max_design = pdata->voltage_max_design;
 	msm_batt_info.voltage_min_design = pdata->voltage_min_design;
 	msm_batt_info.batt_technology = pdata->batt_technology;
-//	msm_batt_info.calculate_capacity = pdata->calculate_capacity;
 	if (!msm_batt_info.voltage_min_design)
 		msm_batt_info.voltage_min_design = BATTERY_LOW;
 	if (!msm_batt_info.voltage_max_design)
@@ -1024,8 +1023,6 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	if (msm_batt_info.batt_technology == POWER_SUPPLY_TECHNOLOGY_UNKNOWN)
 		msm_batt_info.batt_technology = POWER_SUPPLY_TECHNOLOGY_LION;
 
-//	if (!msm_batt_info.calculate_capacity)
-//		msm_batt_info.calculate_capacity = msm_batt_capacity;
 
 	rc = power_supply_register(&pdev->dev, &msm_psy_batt);
 	if (rc < 0) {
