@@ -1627,6 +1627,7 @@ void mddi_host_client_cnt_reset(void)
 	spin_unlock_irqrestore(&mddi_host_spin_lock, flags);
 }
 
+
 static void mddi_host_powerup(mddi_host_type host_idx)
 {
 	mddi_host_cntl_type *pmhctl = &(mhctl[host_idx]);
