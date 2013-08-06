@@ -508,7 +508,7 @@ static void mddi_novatek_lcd_vsync_detected(boolean detected)
 static int mddi_novatek_lcd_on(struct platform_device *pdev)
 {
 	EPRINTK("%s: started.\n", __func__);
-
+	mddi_host_client_cnt_reset();
 #ifndef BOGUS
 	/* LGE_CHANGE_S, [munyoung@lge.com] workaround blink issue when first call of lcd_on */
 	if(is_lcd_on == -1) {

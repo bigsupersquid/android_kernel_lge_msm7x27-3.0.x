@@ -385,11 +385,11 @@ extern int usb_add_hcd(struct usb_hcd *hcd,
 extern void usb_remove_hcd(struct usb_hcd *hcd);
 #else
 static inline int
-extern int usb_add_hcd(struct usb_hcd *hcd, unsigned int irqnum, unsigned long irqflags);//
+usb_add_hcd(struct usb_hcd *hcd, unsigned int irqnum, unsigned long irqflags)
 {
 	return 0;
 }
-extern void usb_remove_hcd(struct usb_hcd *hcd);// {}
+static inline void usb_remove_hcd(struct usb_hcd *hcd) {}
 #endif
 
 struct platform_device;
