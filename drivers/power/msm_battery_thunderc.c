@@ -143,7 +143,7 @@ struct rpc_reply_batt_chg_v1 {
 	u32 	more_data;
 
 	u32	battery_level;
-	u32 voltage_now;
+	u32 charger_voltage;//	u32 voltage_now;
 	u32 batt_valid_id;
 	u32 batt_therm;
 	u32	battery_temp;
@@ -231,7 +231,7 @@ static struct msm_battery_info msm_batt = {
 	.charger_type = CHARGER_TYPE_INVALID,
 	.battery_status = BATTERY_STATUS_GOOD,
 	.battery_level = BATTERY_LEVEL_FULL,
-	.charger_voltage = BATTERY_HIGH,
+	.voltage_now = BATTERY_HIGH,//	.charger_voltage = BATTERY_HIGH,
 	.batt_therm = 77,
 };
 
@@ -372,7 +372,7 @@ struct batt_rep_chg_type {
 	u32 charger_type;
 	u32 battery_status;
 	u32 battery_level;
-	u32 charger_voltage;
+	u32 voltage_now;//	u32 charger_voltage;
 	u32 tmp3;
 	u32 tmp4;
 };
@@ -410,8 +410,9 @@ static struct batt_rep_chg_type batt_rep;
 	batt_rep.charger_type = be32_to_cpu(batt_rep.charger_type);
 	msm_batt.battery_status = be32_to_cpu(batt_rep.battery_status);
 	msm_batt.battery_level = be32_to_cpu(batt_rep.battery_level);
-	msm_batt.charger_voltage = be32_to_cpu(batt_rep.charger_voltage);
-
+	msm_batt.voltage_now = be32_to_cpu(batt_rep.voltage_now);
+		if (msm_batt.voltage_now==0)
+			msm_batt.voltage_now=BATTERY_HIGH;
 		switch (batt_rep.charger_type) {
 		case CHARGER_TYPE_WALL:
 		case CHARGER_TYPE_USB_WALL:
@@ -432,7 +433,7 @@ static struct batt_rep_chg_type batt_rep;
 
 	msm_batt.charger_type=charger_type;
 		DBG_LIMIT("\t battery_level=%d\n", msm_batt.battery_level);
-		DBG_LIMIT("\t charger_voltage=%d\n", msm_batt.charger_voltage);
+		DBG_LIMIT("\t voltage_now=%d\n", msm_batt.voltage_now);
 		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
 		DBG_LIMIT("\t battery_status=%d\n", msm_batt.battery_status);
 		DBG_LIMIT("\t charger_type=%d\n", msm_batt.charger_type);
@@ -467,15 +468,15 @@ static int msm_batt_get_batt_batt_status(void)
 		return rc;
 	} else if (be32_to_cpu(v1p->more_data)) {
 		be32_to_cpu_self(v1p->battery_level);
-		be32_to_cpu_self(v1p->voltage_now);
+		be32_to_cpu_self(v1p->charger_voltage);
 		be32_to_cpu_self(v1p->batt_valid_id);
 		be32_to_cpu_self(v1p->batt_therm);
 		be32_to_cpu_self(v1p->battery_temp);
 //		be32_to_cpu_self(v1p->tmp1);
 //		be32_to_cpu_self(v1p->tmp2);
-		v1p->batt_capacity=msm_batt_capacity(v1p->voltage_now);
+		v1p->batt_capacity=msm_batt_capacity(msm_batt.voltage_now);
 #if 1
-		DBG_LIMIT(" voltage_now=%d\n batt_valid_id=%d\n batt_therm=%d\n battery_temp=%d\n batt_capacity=%d\n", v1p->voltage_now,
+		DBG_LIMIT(" charger_voltage=%d\n batt_valid_id=%d\n batt_therm=%d\n battery_temp=%d\n batt_capacity=%d\n", v1p->charger_voltage,
 			v1p->batt_valid_id, v1p->batt_therm, v1p->battery_temp, v1p->batt_capacity);
 #endif
 	} else {
@@ -520,8 +521,8 @@ static void msm_batt_update_psy_status(void)
 	charger_type = msm_batt.charger_type;
 	battery_status = msm_batt.battery_status;
 	battery_level = msm_batt.battery_level;
-	charger_voltage =  msm_batt.charger_voltage;
-	voltage_now = rep_batt_chg.v1.voltage_now;
+	charger_voltage =  rep_batt_chg.v1.charger_voltage;
+	voltage_now = msm_batt.voltage_now;
 	battery_temp = rep_batt_chg.v1.battery_temp;
 	batt_therm = msm_batt.batt_therm;
 
@@ -933,7 +934,7 @@ static DEVICE_ATTR(batt_therm, S_IRUGO, msm_batt_therm_show, NULL);
 
 static ssize_t msm_batt_chg_curr_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	chg_curr_volt = msm_batt_info.charger_voltage;
+	chg_curr_volt = msm_batt_info.voltage_now;
 	return sprintf(buf,"%d\n", chg_curr_volt);
 }
 static DEVICE_ATTR(chg_curr_volt, S_IRUGO, msm_batt_chg_curr_volt_show, NULL);
