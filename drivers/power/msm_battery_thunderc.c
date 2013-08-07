@@ -58,11 +58,7 @@
 #else
 #define DBG_LIMIT(x...) do {} while (0)
 #endif
-static u32 msm_batt_capacity(u32);
-enum {
-	POWER_SUPPLY_PROP_BATTERY_ID_CHECK = POWER_SUPPLY_PROP_SERIAL_NUMBER+1,
-	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
-};
+
 enum {
 	BATTERY_VOLTAGE_UP = 0,
 	BATTERY_VOLTAGE_DOWN,
@@ -138,40 +134,6 @@ enum chg_battery_level_type {
 	BATTERY_LEVEL_INVALID
 };
 
-struct rpc_reply_batt_chg_v1 {
-	struct rpc_reply_hdr hdr;
-	u32 	more_data;
-
-	u32	battery_level;
-	u32 charger_voltage;//	u32 voltage_now;
-	u32 batt_valid_id;
-	u32 batt_therm;
-	u32	battery_temp;
-	u32	charger_status;
-	u32	charger_type;
-	u32	battery_status;
-	u32 charger_valid;
-	u32 batt_capacity;
-	u32 tmp1;
-	u32 tmp2;
-};
-
-struct rpc_reply_batt_chg_v2 {
-	struct rpc_reply_batt_chg_v1	v1;
-
-	u32	is_charger_valid;
-	u32	is_charging;
-	u32	is_battery_valid;
-	u32	ui_event;
-};
-
-union rpc_reply_batt_chg {
-	struct rpc_reply_batt_chg_v1	v1;
-	struct rpc_reply_batt_chg_v2	v2;
-};
-
-static union rpc_reply_batt_chg rep_batt_chg;
-
 struct msm_battery_info {
 	u32 voltage_max_design;
 	u32 voltage_min_design;
@@ -186,17 +148,15 @@ struct msm_battery_info {
 	u32 batt_health;
 	u32 charger_valid;
 	u32 batt_valid;
-	u32 batt_valid_id;
 	u32 batt_capacity; /* in percentage */
 
 	u32 charger_status;
 	u32 charger_type;
-	u32 charger_voltage;
 	u32 battery_status;
 	u32 battery_level;
-	u32 voltage_now; /* in millivolts */
+	u32 battery_voltage; /* in millie volts */
 	u32 battery_temp;  /* in celsius */
-	u32 batt_therm;
+	u32 battery_therm;
 
 	struct power_supply *msm_psy_ac;
 	struct power_supply *msm_psy_usb;
@@ -214,25 +174,29 @@ struct msm_battery_info {
 static struct msm_battery_info msm_batt_info = {
 	.charger_status = CHARGER_STATUS_BAD,
 	.charger_type = CHARGER_TYPE_INVALID,
-	.charger_voltage = BATTERY_HIGH,
 	.battery_status = BATTERY_STATUS_GOOD,
 	.battery_level = BATTERY_LEVEL_FULL,
-	.voltage_now = BATTERY_HIGH,
+	.battery_voltage = BATTERY_HIGH,
 	.batt_capacity = 100,
 	.batt_status = POWER_SUPPLY_STATUS_DISCHARGING,
 	.batt_health = POWER_SUPPLY_HEALTH_GOOD,
 	.batt_valid  = 1,
 	.battery_temp = 23,
-	.batt_therm = 77,
+	.battery_therm = 75,
 };
 
 static struct msm_battery_info msm_batt = {
-//	.charger_status = CHARGER_STATUS_INVALID,
+	.charger_status = CHARGER_STATUS_BAD,
 	.charger_type = CHARGER_TYPE_INVALID,
 	.battery_status = BATTERY_STATUS_GOOD,
 	.battery_level = BATTERY_LEVEL_FULL,
-	.voltage_now = BATTERY_HIGH,//	.charger_voltage = BATTERY_HIGH,
-	.batt_therm = 77,
+	.battery_voltage = BATTERY_HIGH,
+	.batt_capacity = 100,
+	.batt_status = POWER_SUPPLY_STATUS_DISCHARGING,
+	.batt_health = POWER_SUPPLY_HEALTH_GOOD,
+	.batt_valid  = 1,
+	.battery_temp = 23,
+	.battery_therm = 75,
 };
 
 static enum power_supply_property msm_power_props[] = {
@@ -294,10 +258,7 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TEMP,
-	POWER_SUPPLY_PROP_BATTERY_ID_CHECK,
-	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
 };
-
 
 static int msm_batt_power_get_property(struct power_supply *psy,
 				       enum power_supply_property psp,
@@ -324,11 +285,11 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 /* 2011-04-11 by hyuncheol0@lge.com
- * We use "voltage_now" attribute for the voltage of battery.
- * The unit of voltage_now is micro voltage.
+ * We use "battery_voltage" attribute for the voltage of battery.
+ * The unit of battery_voltage is micro voltage.
  * So, we convert it here.
  */
-		val->intval = (msm_batt_info.voltage_now)*1000;
+		val->intval = (msm_batt_info.battery_voltage)*1000;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		val->intval = msm_batt_info.batt_capacity;
@@ -339,13 +300,7 @@ static int msm_batt_power_get_property(struct power_supply *psy,
  */
 		val->intval = msm_batt_info.battery_temp;
 		break;
-	case POWER_SUPPLY_PROP_BATTERY_ID_CHECK:
-		val->intval = msm_batt_info.batt_valid_id;
-	break;
-	case POWER_SUPPLY_PROP_BATTERY_TEMP_ADC:
-		val->intval = msm_batt_info.batt_therm;
-	break;
-default:
+	default:
 		return -EINVAL;
 	}
 	return 0;
@@ -363,121 +318,164 @@ static struct power_supply msm_psy_batt = {
 
 static int msm_batt_get_batt_chg_status(void)
 {
+	int rc = 0;
 
-struct batt_rep_chg_type {
+
+struct rpc_reply_batt_info_0 {
+	struct rpc_reply_hdr hdr;
+	u32 	more_data;
+
+	u32	battery_level;
+	u32 battery_voltage;
+	u32 batt_valid_id;
+	u32 battery_therm;
+	u32	battery_temp;
+	u32	charger_status;
+	u32	charger_type;
+	u32	battery_status;
+	u32 charger_valid;
+	u32 battery_charging;
+	u32 battery_valid;
+	u32 batt_capacity;
+
+	u32	is_charger_valid;
+	u32	is_charging;
+	u32	is_battery_valid;
+	u32	ui_event;
+};
+struct rpc_reply_batt_info_1 {
+	struct rpc_reply_batt_info_0	v0;
+
+	u32	placeholder;
+};
+
+union rpc_reply_batt_info {
+	struct rpc_reply_batt_info_0	v0;
+	struct rpc_reply_batt_info_1	v1;
+};
+
+static union rpc_reply_batt_info rep_batt_info;
+
+struct rpc_reply_batt_chg_info_0 {
 	struct rpc_reply_hdr hdr;
 	u32 more_data;
 
-	u32 tmp5; //charger_status;
+	u32 charger_status;
 	u32 charger_type;
 	u32 battery_status;
 	u32 battery_level;
-	u32 voltage_now;//	u32 charger_voltage;
-	u32 tmp3;
-	u32 tmp4;
+	u32 battery_voltage;
+	u32 battery_therm;
+	u32 charge_counter;
+};
+struct rpc_reply_batt_chg_info_1 {
+	struct rpc_reply_batt_info_0	v0;
+
+	u32	placeholder;
 };
 
-static struct batt_rep_chg_type batt_rep;
+union rpc_reply_batt_chg_info {
+	struct rpc_reply_batt_chg_info_0	v0;
+	struct rpc_reply_batt_chg_info_1	v1;
+};
 
-	int rc = 0;
-	u32 charger_type = 0;
-	struct batt_req_chg_type {
+static union rpc_reply_batt_chg_info rep_batt_chg_info;
+
+
+	struct rpc_req_batt_info {
 		struct rpc_request_hdr hdr;
 		u32 more_data;
-	} batt_req;
+	} req_batt_info;
 
-	if (!msm_batt_info.chg_ep || IS_ERR(msm_batt_info.chg_ep)) {
-		pr_err("%s: batt rpc connection not initialized, rc = %ld\n",
-				__func__, PTR_ERR(msm_batt_info.chg_ep));
-		return -EAGAIN;
+	struct rpc_req_chg_info {
+		struct rpc_request_hdr hdr;
+		u32 more_data;
+	} req_chg_info;
+
+	struct rpc_reply_batt_info_0 *vbp;
+	struct rpc_reply_batt_chg_info_0 *vcp;
+
+	req_batt_info.more_data = cpu_to_be32(1);
+	req_chg_info.more_data = cpu_to_be32(1);
+
+	memset(&rep_batt_info, 0, sizeof(rep_batt_info));
+	memset(&rep_batt_chg_info, 0, sizeof(rep_batt_chg_info));
+
+	vbp = &rep_batt_info.v0;
+	vcp = &rep_batt_chg_info.v0;
+
+	req_chg_info.more_data = __constant_cpu_to_be32(1);
+
+	rc = msm_rpc_call_reply(msm_batt_info.chg_ep,
+				ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC,
+				&req_batt_info, sizeof(req_batt_info),
+				&rep_batt_info, sizeof(rep_batt_info),
+				msecs_to_jiffies(BATT_RPC_TIMEOUT));
+	if (rc < 0) {
+		pr_err("%s: ERROR. msm_rpc_call_reply failed! proc=%d rc=%d\n",
+		       __func__, ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC, rc);
+		return rc;
+	} else if (be32_to_cpu(vbp->more_data)) {
+		msm_batt.batt_capacity=be32_to_cpu(vbp->batt_capacity);
+		msm_batt.battery_voltage=be32_to_cpu(vbp->battery_voltage);
+		msm_batt.battery_therm=be32_to_cpu(vbp->battery_therm);
+		msm_batt.battery_temp=be32_to_cpu(vbp->battery_temp);
+		msm_batt.batt_valid=be32_to_cpu(vbp->battery_valid);
+//		kfree(vbp);
+	} else {
+		pr_err("%s: No battery/charger data in RPC reply\n", __func__);
+		return -EIO;
 	}
 
-	batt_req.more_data = __constant_cpu_to_be32(1);
+/*next rpc call for charger info*/
 
-	memset(&batt_rep, 0, sizeof(struct batt_rep_chg_type));
+	rc = 0;
+	msm_batt.charger_type = 0;
 
 	rc = msm_rpc_call_reply(msm_batt_info.chg_ep, ONCRPC_CHG_GET_GENERAL_STATUS_PROC,
-			&batt_req, sizeof(struct batt_req_chg_type),
-			&batt_rep, sizeof(struct batt_rep_chg_type),
+			&req_chg_info, sizeof(req_chg_info),
+			&rep_batt_chg_info, sizeof(rep_batt_chg_info),
 			msecs_to_jiffies(5000));
 
 	if (rc < 0) {
 		printk(KERN_ERR "%s: rpc call failed !  rc = %d\n",
 				__func__, rc);
 		return rc;
-	} else if be32_to_cpu(batt_req.more_data) {
-	msm_batt.charger_status=CHARGER_STATUS_INVALID;//be32_to_cpu(batt_rep.charger_status);
-	batt_rep.charger_type = be32_to_cpu(batt_rep.charger_type);
-	msm_batt.battery_status = be32_to_cpu(batt_rep.battery_status);
-	msm_batt.battery_level = be32_to_cpu(batt_rep.battery_level);
-	msm_batt.voltage_now = be32_to_cpu(batt_rep.voltage_now);
-		if (msm_batt.voltage_now==0)
-			msm_batt.voltage_now=BATTERY_HIGH;
-		switch (batt_rep.charger_type) {
-		case CHARGER_TYPE_WALL:
-		case CHARGER_TYPE_USB_WALL:
-		case CHARGER_TYPE_USB_CARKIT:
-			charger_type = 1; /* WALL CHARGER */
-			break;
-		case CHARGER_TYPE_USB_PC:
-			charger_type = 2; /* HOST PC */
-			break;
-		case CHARGER_TYPE_NONE:
-			charger_type = 0; /* NONE */
-			break;
-		case CHARGER_TYPE_INVALID:
-		default:
-			charger_type = 5; /* INVALID */
-			break;
-		}
+	} else if be32_to_cpu(req_chg_info.more_data) {
+	msm_batt.charger_status=be32_to_cpu(vcp->charger_status);
+	be32_to_cpu_self(vcp->charger_type);
+	msm_batt.battery_status = be32_to_cpu(vcp->battery_status);
+	msm_batt.battery_level = be32_to_cpu(vcp->battery_level);
 
-	msm_batt.charger_type=charger_type;
+	switch (vcp->charger_type) {
+	case CHARGER_TYPE_WALL:
+	case CHARGER_TYPE_USB_WALL:
+	case CHARGER_TYPE_USB_CARKIT:
+		msm_batt.charger_type = 1; /* WALL CHARGER */
+		break;
+	case CHARGER_TYPE_USB_PC:
+		msm_batt.charger_type = 2; /* HOST PC */
+		break;
+	case CHARGER_TYPE_NONE:
+		msm_batt.charger_type = 0; /* NONE */
+		break;
+	case CHARGER_TYPE_INVALID:
+	default:
+		msm_batt.charger_type = 5; /* INVALID */
+		break;
+	} 
+//kfree(vcp);
+#if 1
+		DBG_LIMIT("%s() \n ----- charger / battery status --------\n", __func__);
 		DBG_LIMIT("\t battery_level=%d\n", msm_batt.battery_level);
-		DBG_LIMIT("\t voltage_now=%d\n", msm_batt.voltage_now);
+		DBG_LIMIT("\t battery_voltage=%d\n", msm_batt.battery_voltage);
+		DBG_LIMIT("\t battery_therm=%d\n", msm_batt.battery_therm);
+		DBG_LIMIT("\t battery_temp=%d\n", msm_batt.battery_temp);
+		DBG_LIMIT("\t batt_valid=%d\n", msm_batt.batt_valid);
 		DBG_LIMIT("\t charger_status=%d\n", msm_batt.charger_status);
 		DBG_LIMIT("\t battery_status=%d\n", msm_batt.battery_status);
 		DBG_LIMIT("\t charger_type=%d\n", msm_batt.charger_type);
-	}
-
-	return 0;
-}
-
-static int msm_batt_get_batt_batt_status(void)
-{
-	int rc;
-
-	struct rpc_req_batt_chg {
-		struct rpc_request_hdr hdr;
-		u32 more_data;
-	} req_batt_chg;
-	struct rpc_reply_batt_chg_v1 *v1p;
-
-	req_batt_chg.more_data = cpu_to_be32(1);
-
-	memset(&rep_batt_chg, 0, sizeof(rep_batt_chg));
-
-	v1p = &rep_batt_chg.v1;
-	rc = msm_rpc_call_reply(msm_batt_info.chg_ep,
-				ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC,
-				&req_batt_chg, sizeof(req_batt_chg),
-				&rep_batt_chg, sizeof(rep_batt_chg),
-				msecs_to_jiffies(BATT_RPC_TIMEOUT));
-	if (rc < 0) {
-		pr_err("%s: ERROR. msm_rpc_call_reply failed! proc=%d rc=%d\n",
-		       __func__, ONCRPC_LG_CHG_GET_GENERAL_STATUS_PROC, rc);
-		return rc;
-	} else if (be32_to_cpu(v1p->more_data)) {
-		be32_to_cpu_self(v1p->battery_level);
-		be32_to_cpu_self(v1p->charger_voltage);
-		be32_to_cpu_self(v1p->batt_valid_id);
-		be32_to_cpu_self(v1p->batt_therm);
-		be32_to_cpu_self(v1p->battery_temp);
-//		be32_to_cpu_self(v1p->tmp1);
-//		be32_to_cpu_self(v1p->tmp2);
-		v1p->batt_capacity=msm_batt_capacity(msm_batt.voltage_now);
-#if 1
-		DBG_LIMIT(" charger_voltage=%d\n batt_valid_id=%d\n batt_therm=%d\n battery_temp=%d\n batt_capacity=%d\n", v1p->charger_voltage,
-			v1p->batt_valid_id, v1p->batt_therm, v1p->battery_temp, v1p->batt_capacity);
+		DBG_LIMIT("\t batt_capacity=%d\n", msm_batt.batt_capacity);
 #endif
 	} else {
 		pr_err("%s: No battery/charger data in RPC reply\n", __func__);
@@ -498,10 +496,9 @@ static void msm_batt_update_psy_status(void)
 	u32	charger_type;
 	u32	battery_status;
 	u32	battery_level;
-	u32 charger_voltage;
-	u32 voltage_now;
+	u32 battery_voltage;
 	u32	battery_temp;
-	u32 batt_therm;
+	u32 battery_therm;
 	struct	power_supply	*supp;
 
   /* 2010-12-14 by baborobo@lge.com
@@ -512,19 +509,18 @@ static void msm_batt_update_psy_status(void)
 
 	is_run_batt_update = 1;
 	
-	if ((msm_batt_get_batt_chg_status()) || (msm_batt_get_batt_batt_status()))	{
+	if (msm_batt_get_batt_chg_status())	{
 		is_run_batt_update = 0;
 		return;
 	}
 
-	charger_status = CHARGER_STATUS_INVALID; //msm_batt.charger_status;
+	charger_status = msm_batt.charger_status;
 	charger_type = msm_batt.charger_type;
 	battery_status = msm_batt.battery_status;
 	battery_level = msm_batt.battery_level;
-	charger_voltage =  rep_batt_chg.v1.charger_voltage;
-	voltage_now = msm_batt.voltage_now;
-	battery_temp = rep_batt_chg.v1.battery_temp;
-	batt_therm = msm_batt.batt_therm;
+	battery_voltage = msm_batt.battery_voltage;
+	battery_temp = msm_batt.battery_temp;
+	battery_therm = msm_batt.battery_therm;
 
 	if (battery_status == BATTERY_STATUS_INVALID &&
 	    battery_level != BATTERY_LEVEL_INVALID) {
@@ -540,12 +536,10 @@ static void msm_batt_update_psy_status(void)
 			DBG_LIMIT("BATT: USB charger plugged in\n");
 			msm_batt_info.current_chg_source = USB_CHG;
 			supp = &msm_psy_usb;
-			charger_status= CHARGER_STATUS_GOOD;
 		} else if (charger_type == CHARGER_TYPE_WALL) {
 			DBG_LIMIT("BATT: AC Wall changer plugged in\n");
 			msm_batt_info.current_chg_source = AC_CHG;
 			supp = &msm_psy_ac;
-			charger_status= CHARGER_STATUS_GOOD;
 		} else {
 			if (msm_batt_info.current_chg_source & AC_CHG)
 				DBG_LIMIT("BATT: AC Wall charger removed\n");
@@ -641,15 +635,15 @@ static void msm_batt_update_psy_status(void)
 
 	if (battery_status == BATTERY_STATUS_INVALID) {
 		if (battery_level != BATTERY_LEVEL_INVALID) {
-			if (voltage_now >= msm_batt_info.voltage_min_design &&
-			    voltage_now <= msm_batt_info.voltage_max_design) {
+			if (battery_voltage >= msm_batt_info.voltage_min_design &&
+			    battery_voltage <= msm_batt_info.voltage_max_design) {
 				DBG_LIMIT("BATT: Battery valid\n");
 				msm_batt_info.batt_valid = 1;
 				battery_status = BATTERY_STATUS_GOOD;
 			}
 			// LGE_CHANGE_S dangwoo.choi@lge.com
 			else {
-				voltage_now = 0;
+				battery_voltage = 0;
 			}
 		}
 	}
@@ -703,18 +697,15 @@ static void msm_batt_update_psy_status(void)
 	}
 
 	msm_batt_info.charger_status 	= charger_status;
-	msm_batt_info.charger_type 		= charger_type;
+	msm_batt_info.charger_type 	= charger_type;
 	msm_batt_info.battery_status 	= battery_status;
 	msm_batt_info.battery_level 	= battery_level;
-	msm_batt_info.battery_temp 		= battery_temp;
-	msm_batt_info.batt_therm 		= batt_therm;
+	msm_batt_info.battery_temp 	= battery_temp;
 
-	if (msm_batt_info.voltage_now != voltage_now) {
-		msm_batt_info.voltage_now  	= voltage_now;
-		msm_batt_info.batt_capacity =
-			msm_batt_capacity(voltage_now);
+	if (msm_batt_info.battery_voltage != battery_voltage) {
+		msm_batt_info.battery_voltage  	= battery_voltage;
 		DBG_LIMIT("BATT: voltage = %u mV [capacity = %d%%]\n",
-			 voltage_now, msm_batt_info.batt_capacity);
+			 battery_voltage, msm_batt_info.batt_capacity);
 
 		if (!supp)
 			supp = msm_batt_info.current_ps;
@@ -736,8 +727,6 @@ static void msm_batt_update_psy_status(void)
 void msm_batt_early_suspend(struct early_suspend *h)
 {
 	pr_debug("%s: enter\n", __func__);
-
-	msm_batt_update_psy_status();
 
 	pr_debug("%s: exit\n", __func__);
 }
@@ -799,22 +788,21 @@ static int msm_batt_cleanup(void)
 	return rc;
 }
 
+#if 0
 static u32 msm_batt_capacity(u32 current_voltage)
 {
-// LGE_CHANGE_S dangwoo.choi@lge.com
 	u32 low_voltage = msm_batt_info.voltage_min_design;
 	u32 high_voltage = msm_batt_info.voltage_max_design;
 
 	if (current_voltage <= low_voltage)
 		return 0;
-// LGE_CHANGE_E dangwoo.choi@lge.com
-	else if(current_voltage > high_voltage)
+	else if (current_voltage >= high_voltage)
 		return 100;
 	else
 		return (current_voltage - low_voltage) * 100
 			/ (high_voltage - low_voltage);
-
 }
+#endif
 
 int msm_batt_get_charger_api_version(void)
 {
@@ -914,27 +902,27 @@ int msm_batt_get_charger_api_version(void)
 static unsigned batt_volt;
 static unsigned chg_curr_volt;
 static unsigned battery_temp;
-static unsigned batt_therm;
+static unsigned battery_therm;
 static unsigned batt_level;
 
 
 static ssize_t msm_batt_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	batt_volt = msm_batt_info.voltage_now;
+	batt_volt = msm_batt_info.battery_voltage;
 	return sprintf(buf,"%d\n", batt_volt);
 }
 static DEVICE_ATTR(batt_volt, S_IRUGO, msm_batt_volt_show, NULL);
 
-static ssize_t msm_batt_therm_show(struct device* dev, struct device_attribute* attr, char* buf)
+static ssize_t msm_battery_therm_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	batt_therm = msm_batt_info.batt_therm;
-	return sprintf(buf,"%d\n", batt_therm);
+	battery_therm = msm_batt_info.battery_therm;
+	return sprintf(buf,"%d\n", battery_therm);
 }
-static DEVICE_ATTR(batt_therm, S_IRUGO, msm_batt_therm_show, NULL);
+static DEVICE_ATTR(battery_therm, S_IRUGO, msm_battery_therm_show, NULL);
 
 static ssize_t msm_batt_chg_curr_volt_show(struct device* dev, struct device_attribute* attr, char* buf)
 {
-	chg_curr_volt = msm_batt_info.voltage_now;
+	chg_curr_volt = msm_batt_info.battery_voltage;
 	return sprintf(buf,"%d\n", chg_curr_volt);
 }
 static DEVICE_ATTR(chg_curr_volt, S_IRUGO, msm_batt_chg_curr_volt_show, NULL);
@@ -957,7 +945,7 @@ static struct attribute* dev_attrs_lge_batt_info[] = {
 	&dev_attr_batt_volt.attr,
 	&dev_attr_chg_curr_volt.attr,
 	&dev_attr_battery_temp.attr,
-	&dev_attr_batt_therm.attr,
+	&dev_attr_battery_therm.attr,
 	&dev_attr_batt_level.attr,	
 	NULL,
 };
@@ -1023,7 +1011,6 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 
 	if (msm_batt_info.batt_technology == POWER_SUPPLY_TECHNOLOGY_UNKNOWN)
 		msm_batt_info.batt_technology = POWER_SUPPLY_TECHNOLOGY_LION;
-
 
 	rc = power_supply_register(&pdev->dev, &msm_psy_batt);
 	if (rc < 0) {
@@ -1093,11 +1080,6 @@ static int __devinit msm_batt_init_rpc(void)
 		return rc;
 	}
 
-		msm_batt_info.chg_api_version =
-			msm_batt_get_charger_api_version();
-
-	/* Fall back to 1.1 for default */
-	if (msm_batt_info.chg_api_version < 0)
 		msm_batt_info.chg_api_version = CHG_RPC_VER_1_1;
 		msm_batt_info.batt_api_version =  BATTERY_RPC_VER_1_1;
 
