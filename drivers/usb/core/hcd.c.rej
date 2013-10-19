@@ -1,0 +1,12 @@
+--- drivers/usb/core/hcd.c
++++ drivers/usb/core/hcd.c
+@@ -869,9 +869,6 @@
+        bus->bandwidth_isoc_reqs = 0;
+ 
+        INIT_LIST_HEAD (&bus->bus_list);
+-#ifdef CONFIG_USB_OTG
+-       INIT_DELAYED_WORK(&bus->hnp_polling, usb_hnp_polling_work);
+-#endif
+ }
+ 
+ /*-------------------------------------------------------------------------*/

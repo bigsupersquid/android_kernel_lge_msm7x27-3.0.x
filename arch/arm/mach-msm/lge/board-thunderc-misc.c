@@ -31,20 +31,20 @@
 #include <mach/board_lge.h>
 #include <mach/msm_rpcrouter.h>
 #include "board-thunderc.h"
-static u32 thunderc_battery_capacity(u32 current_soc)
+/*static u32 thunderc_battery_capacity(u32 current_soc)
 {
 	if(current_soc > 100)
 		current_soc = 100;
 
 	return current_soc;
 }
-
+*/
 static struct msm_psy_batt_pdata msm_psy_batt_data = {
 	.voltage_min_design     = 3200,
-	.voltage_max_design     = 4250,
+	.voltage_max_design     = 4200,
 	.avail_chg_sources      = AC_CHG | USB_CHG ,
 	.batt_technology        = POWER_SUPPLY_TECHNOLOGY_LION,
-	.calculate_capacity		= thunderc_battery_capacity,
+//	.calculate_capacity		= thunderc_battery_capacity,
 };
 
 static struct platform_device msm_batt_device = {

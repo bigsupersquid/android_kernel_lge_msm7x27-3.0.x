@@ -1,13 +1,29 @@
 /* Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of Code Aurora Forum, Inc. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
@@ -36,11 +52,37 @@ enum {
 	LG_FW_A2M_BATT_INFO_GET = LG_FW_RAPI_START + 2,
 	LG_FW_A2M_PSEUDO_BATT_INFO_SET = LG_FW_RAPI_START + 3,
 	LG_FW_MEID_GET = LG_FW_RAPI_START + 4,
-	/* LGE_CHANGE_S 
-	 * SUPPORT TESTMODE FOR AIRPLAN MODE
-	 * 2010-07-12 taehung.kim@lge.com
+	//LGSI_LS670_Froyo_ToGB_Raghupathy_26Apr2011_Start
+	LG_FW_SET_OPERATION_MODE = LG_FW_RAPI_START + 5,
+	//LGSI_LS670_Froyo_ToGB_Raghupathy_26Apr2011_End
+	/* LGE_CHANGES_S [woonghee.park@lge.com] 2010-05-18, [VS740], 
+	 * LG_FW_CHARGING_TIMER
 	 */
-	LG_FW_SET_OPERATIN_MODE = LG_FW_RAPI_START + 5,
+	LG_FW_SET_CHARGING_TIMER = LG_FW_RAPI_START + 6,
+	LG_FW_GET_CHARGING_TIMER = LG_FW_RAPI_START + 7,
+	/* LGE_CHANGES_E [woonghee.park@lge.com] */
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-29, [LS670] PCB Version */
+	LG_FW_GET_PCB_VERSION = LG_FW_RAPI_START + 8,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-29, [LS670] LG_FW_RTN_RESET */
+	LG_FW_RAPI_CLIENT_EVENT_SET_RTN_RESET= LG_FW_RAPI_START + 9,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-08-09, [LS670] 
+	 * no stop charging even if hot or cold battery 
+	 */
+	LG_FW_RAPI_CLIENT_EVENT_SET_THM_NO_STOP_CHARGING = LG_FW_RAPI_START + 10,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-08-9 */
+	//LGSI_LS670_Froyo_ToGB_Raghupathy_26Apr2011_Start
+	LG_FW_A2M_BLOCK_CHARGING_SET = LG_FW_RAPI_START + 11,
+	/* LGE_CHANGE [james.jang@lge.com] 2010-08-25 */
+	LG_FW_CIQ_EXCEPTION_ERROR_TEST = LG_FW_RAPI_START + 12,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-09-01 */
+	LG_FW_SET_CHARGING_STAT_REALTIME_UPDATE = LG_FW_RAPI_START + 13,
+	LG_FW_GET_CHARGING_STAT_REALTIME_UPDATE = LG_FW_RAPI_START + 14,
+	//LGSI_LS670_Froyo_ToGB_Raghupathy_26Apr2011_End
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-09-12, prl version */
+	LG_FW_GET_PRL_VERSION = LG_FW_RAPI_START + 15,
+	/* LGE_CHANGE [dojip.kim@lge.com] 2010-09-28, ftm boot */
+	LG_FW_SET_FTM_BOOT = LG_FW_RAPI_START + 16,
+	LG_FW_GET_FTM_BOOT = LG_FW_RAPI_START + 17,
 #endif
 	OEM_RAPI_CLIENT_EVENT_MAX
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  *
  */
 
@@ -33,31 +28,11 @@
 #include <linux/uaccess.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
-#if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-#include <linux/delay.h>
-#endif
 
 #include <asm/atomic.h>
 
 #include <mach/msm_rpcrouter.h>
 #include <mach/msm_battery.h>
-#if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-#include <mach/board_lge.h>
-#endif
-
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-#include <mach/rpc_hsusb.h>
-int charger_hw_type;
-enum {
-	CHG_HOST_PC,
-	CHG_WALL = 2,
-	CHG_UNDEFINED,
-};
-enum {
-	POWER_SUPPLY_PROP_BATTERY_ID_CHECK = POWER_SUPPLY_PROP_SERIAL_NUMBER+1,
-	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
-};
-#endif
 
 #define BATTERY_RPC_PROG	0x30000089
 #define BATTERY_RPC_VER_1_1	0x00010001
@@ -79,7 +54,19 @@ enum {
 #define BATTERY_DEREGISTER_CLIENT_PROC			5
 #define BATTERY_READ_MV_PROC				12
 #define BATTERY_ENABLE_DISABLE_FILTER_PROC		14
+#define BATTERY_GET_CHARGE_STAET_PROC       121
+//#define BATTERY_SET_BATT_DELTA_PROC 	    120 
+#define BATTERY_LEVEL_PROC                  20 /*119*/
 
+/* the battery delta to determine when to *
+ * notify app to update battery status    */
+#define VBATT_DELTA			1
+#define HEALTH_TEMP_MAX 60       /* define temperature max,and decide whether it's overheat  */
+#define HEALTH_TEMP_MIN (-20)       /* define temperature min,and decide whether it's over cold */
+/* the temp reported from modem had been multiplied by 1*/
+#define TEMP_MULTIPLE   1
+#define HEALTH_VOLT_MAX 4250
+#define NO_BATT_TEMPERATURE (-30)
 #define VBATT_FILTER			2
 
 #define BATTERY_CB_TYPE_PROC		1
@@ -87,7 +74,7 @@ enum {
 #define BATTERY_CB_ID_LOW_VOL		2
 
 #define BATTERY_LOW		3200
-#define BATTERY_HIGH		4300
+#define BATTERY_HIGH		4200
 
 #define ONCRPC_CHG_GET_GENERAL_STATUS_PROC	12
 #define ONCRPC_CHARGER_API_VERSIONS_PROC	0xffffffff
@@ -100,18 +87,26 @@ enum {
 #define RPC_TYPE_REPLY   1
 #define RPC_REQ_REPLY_COMMON_HEADER_SIZE   (3 * sizeof(uint32_t))
 
-
 #if DEBUG
 #define DBG_LIMIT(x...) do {if (printk_ratelimit()) pr_debug(x); } while (0)
 #else
 #define DBG_LIMIT(x...) do {} while (0)
 #endif
-
+/*delete the macro "CONFIG_HAS_EARLYSUSPEND", it will conduce to the charge staus can't update in time*/
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#undef CONFIG_HAS_EARLYSUSPEND
+#endif
+/*the report threshold in mV*/
+#define SUSPEND_DELTA_LEVEL 20
+/*get battery level rpc function id*/
+/*delete some lines*/
+#define BAT_DISP_FULL_LEVEL_VALUE 90
 enum {
 	BATTERY_REGISTRATION_SUCCESSFUL = 0,
 	BATTERY_DEREGISTRATION_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
 	BATTERY_MODIFICATION_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
 	BATTERY_INTERROGATION_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
+    BATTERY_SETDELTA_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
 	BATTERY_CLIENT_TABLE_FULL = 1,
 	BATTERY_REG_PARAMS_WRONG = 2,
 	BATTERY_DEREGISTRATION_FAILED = 4,
@@ -201,6 +196,13 @@ enum chg_battery_level_type {
 	BATTERY_LEVEL_INVALID
 };
 
+/*delete some lines*/
+/* charge client for rpc */
+struct msm_rpc_endpoint *chg_client;
+/* RPC client for charging */
+
+
+
 #ifndef CONFIG_BATTERY_MSM_FAKE
 struct rpc_reply_batt_chg_v1 {
 	struct rpc_reply_hdr hdr;
@@ -212,13 +214,6 @@ struct rpc_reply_batt_chg_v1 {
 	u32	battery_level;
 	u32     battery_voltage;
 	u32	battery_temp;
-#ifdef CONFIG_LGE_FUEL_GAUGE
-	u32	battery_soc;
-#endif
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	u32	battery_id;
-	u32	battery_therm;
-#endif
 };
 
 struct rpc_reply_batt_chg_v2 {
@@ -260,10 +255,6 @@ struct msm_battery_info {
 	u32 battery_level;
 	u32 battery_voltage; /* in millie volts */
 	u32 battery_temp;  /* in celsius */
-	#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	u32 valid_battery_id;
-	u32 battery_therm;
-	#endif
 
 	u32(*calculate_capacity) (u32 voltage);
 
@@ -358,10 +349,6 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TEMP,
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	POWER_SUPPLY_PROP_BATTERY_ID_CHECK,
-	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
-#endif
 };
 
 static int msm_batt_power_get_property(struct power_supply *psy,
@@ -396,14 +383,6 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = msm_batt_info.battery_temp;
 		break;
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	case POWER_SUPPLY_PROP_BATTERY_ID_CHECK:
-		val->intval = msm_batt_info.valid_battery_id;
-		break;
-	case POWER_SUPPLY_PROP_BATTERY_TEMP_ADC:
-		val->intval = msm_batt_info.battery_therm;
-		break;
-#endif
 	default:
 		return -EINVAL;
 	}
@@ -417,6 +396,53 @@ static struct power_supply msm_psy_batt = {
 	.num_properties = ARRAY_SIZE(msm_batt_power_props),
 	.get_property = msm_batt_power_get_property,
 };
+/*the get battery level RPC function*/
+struct msm_batt_get_battery_level_ret_data {
+	u32 battery_level;
+};
+
+/* delete func msm_batt_get_battery_level_ret_func */
+
+/* the RPC function to get the battery level from modem side for MSM7X27A  */
+struct msm_batt_get_level_ret_data {
+	u32 battery_level;
+};
+
+static int msm_batt_get_level_ret_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_batt_get_level_ret_data *data_ptr, *buf_ptr;
+
+	data_ptr = (struct msm_batt_get_level_ret_data *)data;
+	buf_ptr = (struct msm_batt_get_level_ret_data *)buf;
+
+	data_ptr->battery_level = be32_to_cpu(buf_ptr->battery_level);
+
+	return 0;
+}
+
+static u32 msm_batt_get_battery_level(void)
+{
+	int rc;
+	struct msm_batt_get_level_ret_data rep;
+
+	rc = msm_rpc_client_req(msm_batt_info.batt_client,
+			BATTERY_LEVEL_PROC,
+			NULL, NULL,
+			msm_batt_get_level_ret_func, &rep,
+			msecs_to_jiffies(BATT_RPC_TIMEOUT));
+
+	if (rc < 0) {
+		pr_err("%s: FAIL: vbatt get volt. rc=%d\n", __func__, rc);
+		return 0;
+	}
+
+	return rep.battery_level;
+}
+
+/*delete some lines*/
+
+
 
 #ifndef CONFIG_BATTERY_MSM_FAKE
 struct msm_batt_get_volt_ret_data {
@@ -456,6 +482,43 @@ static u32 msm_batt_get_vbatt_voltage(void)
 	return rep.battery_voltage;
 }
 
+/* the RPC function to get the charge state from modem side */
+struct msm_batt_get_charge_state_ret_data {
+	u32 chg_state;
+};
+
+static int msm_batt_get_charge_state_ret_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_batt_get_charge_state_ret_data *data_ptr, *buf_ptr;
+
+	data_ptr = (struct msm_batt_get_charge_state_ret_data *)data;
+	buf_ptr = (struct msm_batt_get_charge_state_ret_data *)buf;
+
+	data_ptr->chg_state = be32_to_cpu(buf_ptr->chg_state);
+
+	return 0;
+}
+
+static u32 msm_batt_get_charge_state(void)
+{
+	int rc;
+
+	struct msm_batt_get_charge_state_ret_data rep;
+
+	rc = msm_rpc_client_req(msm_batt_info.batt_client,
+			BATTERY_GET_CHARGE_STAET_PROC,
+			NULL, NULL,
+			msm_batt_get_charge_state_ret_func, &rep,
+			msecs_to_jiffies(BATT_RPC_TIMEOUT));
+
+	if (rc < 0) {
+		pr_err("%s: FAIL: vbatt get charge state. rc=%d\n", __func__, rc);
+		return 0;
+	}
+
+	return rep.chg_state;
+}
 #define	be32_to_cpu_self(v)	(v = be32_to_cpu(v))
 
 static int msm_batt_get_batt_chg_status(void)
@@ -489,12 +552,8 @@ static int msm_batt_get_batt_chg_status(void)
 		be32_to_cpu_self(v1p->battery_level);
 		be32_to_cpu_self(v1p->battery_voltage);
 		be32_to_cpu_self(v1p->battery_temp);
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		be32_to_cpu_self(v1p->battery_soc);
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-		be32_to_cpu_self(v1p->battery_id);
-		be32_to_cpu_self(v1p->battery_therm);
-#else
+
+
 		DBG_LIMIT("%s() \n ----- charger / battery status --------\n", __func__);
 		DBG_LIMIT("\t charger_status=%d\n", v1p->charger_status);
 		DBG_LIMIT("\t charger_type=%d\n", v1p->charger_type);
@@ -502,9 +561,6 @@ static int msm_batt_get_batt_chg_status(void)
 		DBG_LIMIT("\t battery_level=%d\n", v1p->battery_level);
 		DBG_LIMIT("\t battery_voltage=%d\n", v1p->battery_voltage);
 		DBG_LIMIT("\t battery_temp=%d\n", v1p->battery_temp);
-		DBG_LIMIT("\t battery_soc=%d\n", v1p->battery_soc);
-#endif
-#endif
 	} else {
 		pr_err("%s: No battery/charger data in RPC reply\n", __func__);
 		return -EIO;
@@ -521,44 +577,26 @@ static void msm_batt_update_psy_status(void)
 	u32	battery_status;
 	u32	battery_level;
 	u32     battery_voltage;
-	u32	battery_temp;
-#ifdef CONFIG_LGE_FUEL_GAUGE
-	u32	battery_soc;
-#endif
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	u32	battery_id;
-	u32	battery_therm;
-	u32	hw_type_from_usb;
-#endif
+	s32	battery_temp;    
 	struct	power_supply	*supp;
 
+    u32	battery_capacity;
+ 
 	if (msm_batt_get_batt_chg_status())
 		return;
 
+    /* update capacity from modem sides */
+    battery_capacity = 100;//msm_batt_get_battery_level();
+
 	charger_status = rep_batt_chg.v1.charger_status;
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-	hw_type_from_usb = msm_hsusb_get_charger_type();
-	if (hw_type_from_usb == CHG_HOST_PC) {
-		charger_type = CHARGER_TYPE_USB_PC;
-	} else if (hw_type_from_usb == CHG_WALL) {
-		charger_type = CHARGER_TYPE_WALL;
-	} else {
-		charger_type = CHARGER_TYPE_NONE;
-	}
-#else
 	charger_type = rep_batt_chg.v1.charger_type;
-#endif
 	battery_status = rep_batt_chg.v1.battery_status;
-	battery_level = rep_batt_chg.v1.battery_level;
-	battery_voltage = rep_batt_chg.v1.battery_voltage;
+	battery_level = 4;
+rep_batt_chg.v1.battery_level=be32_to_cpu(4);
+	battery_voltage = 4200;
+rep_batt_chg.v1.battery_voltage=be32_to_cpu(4200);
 	battery_temp = rep_batt_chg.v1.battery_temp;
-#ifdef CONFIG_LGE_FUEL_GAUGE
-	battery_soc = rep_batt_chg.v1.battery_soc;
-#endif
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	battery_id = rep_batt_chg.v1.battery_id;
-	battery_therm = rep_batt_chg.v1.battery_therm;
-#endif
+
 	/* Make correction for battery status */
 	if (battery_status == BATTERY_STATUS_INVALID_v1) {
 		if (msm_batt_info.chg_api_version < CHG_RPC_VER_3_1)
@@ -570,9 +608,7 @@ static void msm_batt_update_psy_status(void)
 	    battery_status == msm_batt_info.battery_status &&
 	    battery_level == msm_batt_info.battery_level &&
 	    battery_voltage == msm_batt_info.battery_voltage &&
-#ifdef CONFIG_LGE_FUEL_GAUGE
-	    battery_soc == msm_batt_info.batt_capacity &&
-#endif
+	    battery_capacity == msm_batt_info.batt_capacity &&
 	    battery_temp == msm_batt_info.battery_temp) {
 		/* Got unnecessary event from Modem PMIC VBATT driver.
 		 * Nothing changed in Battery or charger status.
@@ -585,22 +621,11 @@ static void msm_batt_update_psy_status(void)
 	}
 
 	unnecessary_event_count = 0;
+	DBG_LIMIT("BATT: rcvd: %d, %d, %d, %d; %d, %d, %d\n",
+		 charger_status, charger_type, battery_status,
+		 battery_level, battery_voltage, battery_temp, msm_batt_get_charge_state());
+/*delete some lines*/
 
-#ifdef CONFIG_LGE_FUEL_GAUGE
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-	DBG_LIMIT("BATT: rcvd: %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
-		 charger_status, charger_type, battery_status,
-		 battery_level, battery_voltage, battery_temp, battery_soc,battery_id,battery_therm);
-#else
-	DBG_LIMIT("BATT: rcvd: %d, %d, %d, %d, %d, %d, %d\n",
-		 charger_status, charger_type, battery_status,
-		 battery_level, battery_voltage, battery_temp, battery_soc);
-#endif
-#else
-	DBG_LIMIT("BATT: rcvd: %d, %d, %d, %d; %d, %d\n",
-		 charger_status, charger_type, battery_status,
-		 battery_level, battery_voltage, battery_temp);
-#endif
 
 	if (battery_status == BATTERY_STATUS_INVALID &&
 	    battery_level != BATTERY_LEVEL_INVALID) {
@@ -634,37 +659,33 @@ static void msm_batt_update_psy_status(void)
 			if (charger_status != CHARGER_STATUS_INVALID) {
 				DBG_LIMIT("BATT: No charging!\n");
 				charger_status = CHARGER_STATUS_INVALID;
-				msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_NOT_CHARGING;
+			    /* delete some lines */
 			}
+            /* power source is battery so batt_status must be discharging */
+			msm_batt_info.batt_status =
+				POWER_SUPPLY_STATUS_DISCHARGING;
 		}
 	} else
 		supp = NULL;
-
-	if (msm_batt_info.charger_status != charger_status) {
-		if (charger_status == CHARGER_STATUS_GOOD ||
-		    charger_status == CHARGER_STATUS_WEAK) {
+    /*make judgement for battery status*/
+	if ((msm_batt_info.charger_status != charger_status) ||
+        (msm_batt_info.battery_status != battery_status)) {
+		if ((charger_status == CHARGER_STATUS_GOOD ||
+		    charger_status == CHARGER_STATUS_WEAK) &&
+		    (BATTERY_STATUS_GOOD == battery_status)) {
 			if (msm_batt_info.current_chg_source) {
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		/* LGE_CHANGE
-		 * add for Full charging
-		 * 2010-05-04 baborobo@lge.com
-		 */
-			  if(battery_level == BATTERY_LEVEL_FULL)	{
-					DBG_LIMIT("BATT: FULL.\n");
-					msm_batt_info.batt_status =
-						POWER_SUPPLY_STATUS_FULL;
-				}else
-				{
-					DBG_LIMIT("BATT: Charging.\n");
-					msm_batt_info.batt_status =
-						POWER_SUPPLY_STATUS_CHARGING;
-				}
-#else
-				DBG_LIMIT("BATT: Charging.\n");
-				msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_CHARGING;
-#endif
+                if(BATTERY_LEVEL_FULL == battery_level)
+                {
+                    DBG_LIMIT("BATT: No Charging,FULL!\n");
+                    msm_batt_info.batt_status = 
+                        POWER_SUPPLY_STATUS_FULL;
+                } 
+                else 
+                {
+                    DBG_LIMIT("BATT: Charging.\n");
+				    msm_batt_info.batt_status =
+					    POWER_SUPPLY_STATUS_CHARGING;
+                }
 
 				/* Correct when supp==NULL */
 				if (msm_batt_info.current_chg_source & AC_CHG)
@@ -672,60 +693,42 @@ static void msm_batt_update_psy_status(void)
 				else
 					supp = &msm_psy_usb;
 			}
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		/* LGE_CHANGE
-		 * add for unpluged status of battery
-		 * 2010-04-28 baborobo@lge.com
-		 */
-			if (battery_status == BATTERY_STATUS_INVALID	&&
-				battery_level == BATTERY_LEVEL_INVALID) {	
-				DBG_LIMIT("BATT: No Battery.\n");
-				msm_batt_info.batt_status =
-						POWER_SUPPLY_STATUS_UNKNOWN;
-			}
-#endif
 		} else {
 			DBG_LIMIT("BATT: No charging.\n");
-			msm_batt_info.batt_status =
-				POWER_SUPPLY_STATUS_NOT_CHARGING;
+            /* no charging and charge source attached */    
+            if (msm_batt_info.current_chg_source)
+            {
+			    msm_batt_info.batt_status =
+				    POWER_SUPPLY_STATUS_NOT_CHARGING;  
+            } else 
+            /* no charging and no charge source attached */
+            {
+			    msm_batt_info.batt_status =
+				    POWER_SUPPLY_STATUS_DISCHARGING;
+            }
 			supp = &msm_psy_batt;
 		}
 	} else {
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		/* LGE_CHANGE
-		 * add for unpluged status of battery
-		 * 2010-04-07 baborobo@lge.com
-		 */
-		if (battery_status == BATTERY_STATUS_INVALID	&&
-			battery_level == BATTERY_LEVEL_INVALID) {	
-			DBG_LIMIT("BATT: No Battery\n");
-			msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_UNKNOWN;
-		} else
-#endif
 		/* Correct charger status */
 		if (charger_type != CHARGER_TYPE_INVALID &&
 		    charger_status == CHARGER_STATUS_GOOD) {
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		/* LGE_CHANGE
-		 * add for Full charging
-		 * 2010-05-04 baborobo@lge.com
-		 */
-		  if(battery_level == BATTERY_LEVEL_FULL)	{
-				DBG_LIMIT("BATT: FULL\n");
-				msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_FULL;
-			}else
-			{
-				DBG_LIMIT("BATT: In charging\n");
-				msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_CHARGING;
-			}
-#else
-			DBG_LIMIT("BATT: In charging\n");
-			msm_batt_info.batt_status =
-				POWER_SUPPLY_STATUS_CHARGING;
-#endif
+            /*make judgement for battery status*/
+            if(BATTERY_STATUS_GOOD == battery_status)
+            {
+                if(BATTERY_LEVEL_FULL == battery_level)
+                {
+                    DBG_LIMIT("BATT: No Charging,FULL!\n");
+                    msm_batt_info.batt_status = 
+                        POWER_SUPPLY_STATUS_FULL;
+                }
+                else
+                {
+			        DBG_LIMIT("BATT: In charging\n");
+			        msm_batt_info.batt_status =
+				        POWER_SUPPLY_STATUS_CHARGING;
+                }
+                
+            }
 		}
 	}
 
@@ -739,9 +742,6 @@ static void msm_batt_update_psy_status(void)
 			battery_voltage = msm_batt_info.battery_voltage;
 	}
 	if (battery_status == BATTERY_STATUS_INVALID) {
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		if (battery_level != BATTERY_LEVEL_INVALID) 
-#endif
 		if (battery_voltage >= msm_batt_info.voltage_min_design &&
 		    battery_voltage <= msm_batt_info.voltage_max_design) {
 			DBG_LIMIT("BATT: Battery valid\n");
@@ -758,11 +758,12 @@ static void msm_batt_update_psy_status(void)
 				DBG_LIMIT("BATT: Battery bad.\n");
 				msm_batt_info.batt_health =
 					POWER_SUPPLY_HEALTH_DEAD;
-			} else if (battery_status == BATTERY_STATUS_BAD_TEMP) {
-				DBG_LIMIT("BATT: Battery overheat.\n");
-				msm_batt_info.batt_health =
-					POWER_SUPPLY_HEALTH_OVERHEAT;
-			} else {
+            /* the pm irq isn't accurate, delete it */
+			} else if(battery_status == BATTERY_STATUS_REMOVED){
+			    msm_batt_info.batt_health = 
+                    POWER_SUPPLY_HEALTH_DEAD;
+                    
+            } else  {
 				DBG_LIMIT("BATT: Battery good.\n");
 				msm_batt_info.batt_health =
 					POWER_SUPPLY_HEALTH_GOOD;
@@ -773,26 +774,13 @@ static void msm_batt_update_psy_status(void)
 			msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_UNKNOWN;
 		}
 
-#ifdef CONFIG_LGE_FUEL_GAUGE
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-		if (msm_batt_info.batt_status != POWER_SUPPLY_STATUS_CHARGING) 
-#else
-		if (msm_batt_info.batt_status != POWER_SUPPLY_STATUS_CHARGING
-			&& msm_batt_info.batt_status != POWER_SUPPLY_STATUS_FULL)
-#endif
-#else
-		if (msm_batt_info.batt_status != POWER_SUPPLY_STATUS_CHARGING) 
-#endif
-		{
+		if (msm_batt_info.batt_status != POWER_SUPPLY_STATUS_CHARGING) {
 			if (battery_status == BATTERY_STATUS_INVALID) {
 				DBG_LIMIT("BATT: Battery -> unknown\n");
 				msm_batt_info.batt_status =
 					POWER_SUPPLY_STATUS_UNKNOWN;
-			} else {
-				DBG_LIMIT("BATT: Battery -> discharging\n");
-				msm_batt_info.batt_status =
-					POWER_SUPPLY_STATUS_DISCHARGING;
-			}
+            /* delete some lines */    
+			} 
 		}
 
 		if (!supp) {
@@ -805,67 +793,64 @@ static void msm_batt_update_psy_status(void)
 				supp = &msm_psy_batt;
 		}
 	}
-
+    /* the battery is too hot/cold or over voltage*/
+    if(battery_temp/TEMP_MULTIPLE > HEALTH_TEMP_MAX)
+    {
+        msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_OVERHEAT;
+    } 
+    else if((battery_temp/TEMP_MULTIPLE < HEALTH_TEMP_MIN) && 
+        (battery_temp/TEMP_MULTIPLE > NO_BATT_TEMPERATURE))
+    {
+        msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_COLD;        
+    }
+    else if(battery_voltage > HEALTH_VOLT_MAX)
+    {
+        msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_OVERVOLTAGE; 
+    }
+    /* update the batt health when battery removed or bad */
+    else if((BATTERY_STATUS_REMOVED == battery_status) ||
+    	    (BATTERY_STATUS_BAD == battery_status))
+    {
+    	msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_DEAD;
+    }
+	/* set the default batt health */
+    else
+    {
+        msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_GOOD;
+    }
 	msm_batt_info.charger_status 	= charger_status;
 	msm_batt_info.charger_type 	= charger_type;
 	msm_batt_info.battery_status 	= battery_status;
 	msm_batt_info.battery_level 	= battery_level;
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-	msm_batt_info.battery_temp 	= battery_temp * 10;
-	msm_batt_info.valid_battery_id  = battery_id;
-	msm_batt_info.battery_therm     = battery_therm;
-#else
 	msm_batt_info.battery_temp 	= battery_temp;
-#endif
 
-#ifdef CONFIG_LGE_FUEL_GAUGE
-#ifndef CONFIG_MACH_MSM7X27_THUNDERC
-	msm_batt_info.battery_voltage  	= battery_voltage;
-	msm_batt_info.batt_capacity =
-		msm_batt_info.calculate_capacity(battery_soc);
-
-	if (!supp)
-		supp = msm_batt_info.current_ps;
-#else
-	if(msm_batt_info.battery_voltage != battery_voltage) {
-		msm_batt_info.battery_voltage = battery_voltage;
-		msm_batt_info.batt_capacity = msm_batt_info.calculate_capacity(battery_soc);
-		DBG_LIMIT("BATT: voltage = %u mV [capacity = %d%%]\n",
-			 battery_voltage, msm_batt_info.batt_capacity);
-
-		if (!supp)
-			supp = msm_batt_info.current_ps;
-	}
-	
-#endif
-#else
+    /* update capacity */
+    msm_batt_info.batt_capacity = battery_capacity;
+    
 	if (msm_batt_info.battery_voltage != battery_voltage) {
 		msm_batt_info.battery_voltage  	= battery_voltage;
-		msm_batt_info.batt_capacity =
-			msm_batt_info.calculate_capacity(battery_voltage);
-		DBG_LIMIT("BATT: voltage = %u mV [capacity = %d%%]\n",
-			 battery_voltage, msm_batt_info.batt_capacity);
-
 		if (!supp)
 			supp = msm_batt_info.current_ps;
 	}
-#endif
+    /* when charging, synchronization capacity and batt_status */
+    if( POWER_SUPPLY_STATUS_CHARGING == msm_batt_info.batt_status )
+    {
+        if( 100 == msm_batt_info.batt_capacity )
+        {
+            msm_batt_info.batt_status = POWER_SUPPLY_STATUS_FULL;
+        } 
+    /*if the charging process ended and the voltage level unequal to 100,set the level 100*/
+    }else if( (POWER_SUPPLY_STATUS_FULL == msm_batt_info.batt_status) &&
+              (msm_batt_info.batt_capacity >= BAT_DISP_FULL_LEVEL_VALUE) ) 
+    {
+        msm_batt_info.batt_capacity = 100;
+    }
 
-#if defined(CONFIG_LGE_FUEL_GAUGE) && !defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	if (supp 
-			&& supp != &msm_psy_batt) {
-		msm_batt_info.current_ps = supp;
-		DBG_LIMIT("BATT: Supply = %s\n", supp->name);
-		power_supply_changed(supp);
-	}
-	power_supply_changed(&msm_psy_batt);
-#else
 	if (supp) {
 		msm_batt_info.current_ps = supp;
 		DBG_LIMIT("BATT: Supply = %s\n", supp->name);
 		power_supply_changed(supp);
 	}
-#endif
 }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1013,70 +998,23 @@ void msm_batt_late_resume(struct early_suspend *h)
 		return;
 	}
 
-#ifdef CONFIG_LGE_FUEL_GAUGE
-		/* LGE_CHANGE
-		 * add for Battery Status Update when out of sleep
-		 * 2010-04-21 baborobo@lge.com
-		 */
-	msm_batt_update_psy_status();
-
 	pr_debug("%s: exit\n", __func__);
-#endif
 }
 #endif
-
-#if defined CONFIG_MACH_MSM7X27_THUNDERG && defined CONFIG_PM
-static int msm_batt_suspend(struct platform_device *pdev, pm_message_t state)
+/*add suspend and resume function*/
+static int  thunderc_battery_suspend(struct platform_device* pdev, pm_message_t mesg)
 {
-	int rc;
-
-	pr_debug(KERN_INFO "[msm_battery] %s()...\n", __func__);
-
-	msm_batt_update_psy_status();
-
-	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
-		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
-				BATTERY_LOW, BATTERY_VOLTAGE_BELOW_THIS_LEVEL,
-				BATTERY_CB_ID_LOW_VOL, BATTERY_LOW);
-
-		if (rc < 0) {
-			pr_err("%s: msm_batt_modify_client. rc=%d\n",
-			       __func__, rc);
-			return 0;
-		}
-	} else {
-		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
-		return 0;
-	}
-
-	return 0;
+    return 0;
 }
 
-static int msm_batt_resume(struct platform_device *pdev)
+static int  thunderc_battery_resume(struct platform_device *pdev)
 {
-	int rc;
-
-	pr_debug(KERN_INFO "[msm_battery] %s()...\n", __func__);
-
-	if (msm_batt_info.batt_handle != INVALID_BATT_HANDLE) {
-		rc = msm_batt_modify_client(msm_batt_info.batt_handle,
-				BATTERY_LOW, BATTERY_ALL_ACTIVITY,
-			       BATTERY_CB_ID_ALL_ACTIV, BATTERY_ALL_ACTIVITY);
-		if (rc < 0) {
-			pr_err("%s: msm_batt_modify_client FAIL rc=%d\n",
-			       __func__, rc);
-			return 0;
-		}
-	} else {
-		pr_err("%s: ERROR. invalid batt_handle\n", __func__);
-		return 0;
-	}
-
-	msm_batt_update_psy_status();
-	return 0;
+ 
+    /* update battery status when apps resume */
+    msm_batt_update_psy_status();
+    
+    return 0;
 }
-#endif //#if defined CONFIG_MACH_MSM7X27_THUNDERG && defined CONFIG_PM
-
 struct msm_batt_vbatt_filter_req {
 	u32 batt_handle;
 	u32 enable_filter;
@@ -1403,6 +1341,7 @@ static int msm_batt_deregister(u32 batt_handle)
 
 	return 0;
 }
+
 #endif  /* CONFIG_BATTERY_MSM_FAKE */
 
 static int msm_batt_cleanup(void)
@@ -1596,27 +1535,6 @@ static int msm_batt_cb_func(struct msm_rpc_client *client,
 }
 #endif  /* CONFIG_BATTERY_MSM_FAKE */
 
-#if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-static unsigned pif_value;
-static unsigned low_power_mode;
-
-static ssize_t msm_batt_pif_show(struct device* dev, struct device_attribute* attr, char* buf)
-{
-	return sprintf(buf,"%d\n", pif_value);
-}
-
-static DEVICE_ATTR(pif, S_IRUGO, msm_batt_pif_show, NULL);
-
-static struct attribute* dev_attrs[] = {
-	&dev_attr_pif.attr,
-	NULL,
-};
-
-static struct attribute_group dev_attr_grp = {
-	.attrs = dev_attrs,
-};
-#endif
-
 static int __devinit msm_batt_probe(struct platform_device *pdev)
 {
 	int rc;
@@ -1725,31 +1643,12 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	power_supply_changed(&msm_psy_ac);
 #endif  /* CONFIG_BATTERY_MSM_FAKE */
 
-#if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-	rc = sysfs_create_group(&pdev->dev.kobj, &dev_attr_grp);
-	if(rc < 0) {
-		dev_err(&pdev->dev,
-			"%s: msm_batt_cleanup  failed rc=%d\n", __func__, rc);
-	} else {
-		pif_value = lge_get_pif_info();
-		mdelay(10);
-		low_power_mode = lge_get_lpm_info();
-	}
-
-	dev_info(&pdev->dev, "%s : Using PIF ZIG (%d)\n", __func__, pif_value);
-#endif
-
 	return 0;
 }
 
 static int __devexit msm_batt_remove(struct platform_device *pdev)
 {
 	int rc;
-	
-#if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-	sysfs_remove_group(&pdev->dev.kobj,&dev_attr_grp);
-#endif
-
 	rc = msm_batt_cleanup();
 
 	if (rc < 0) {
@@ -1762,11 +1661,9 @@ static int __devexit msm_batt_remove(struct platform_device *pdev)
 
 static struct platform_driver msm_batt_driver = {
 	.probe = msm_batt_probe,
+    .suspend = thunderc_battery_suspend,
+    .resume = thunderc_battery_resume,
 	.remove = __devexit_p(msm_batt_remove),
-#if defined CONFIG_MACH_MSM7X27_THUNDERG && defined CONFIG_PM
-	.suspend = msm_batt_suspend,
-	.resume = msm_batt_resume,
-#endif
 	.driver = {
 		   .name = "msm-battery",
 		   .owner = THIS_MODULE,
@@ -1775,7 +1672,7 @@ static struct platform_driver msm_batt_driver = {
 
 static int __devinit msm_batt_init_rpc(void)
 {
-	int rc;
+	int rc = 0;
 
 #ifdef CONFIG_BATTERY_MSM_FAKE
 	pr_info("Faking MSM battery\n");
@@ -1865,6 +1762,20 @@ static int __devinit msm_batt_init_rpc(void)
 		msm_batt_info.batt_client = NULL;
 		return rc;
 	}
+
+/*delete some lines*/
+ 
+    chg_client   =   msm_rpc_connect(CHG_RPC_PROG, CHG_RPC_VER_4_1, 0);
+    if (chg_client == NULL) 
+    {
+		pr_err("%s: FAIL: rpc_register_client. chg_client=NULL\n",
+		       __func__);
+		return -ENODEV;
+    }
+
+    /* delete some lines */
+
+
 #endif  /* CONFIG_BATTERY_MSM_FAKE */
 
 	rc = platform_driver_register(&msm_batt_driver);
@@ -1878,7 +1789,7 @@ static int __devinit msm_batt_init_rpc(void)
 
 static int __init msm_batt_init(void)
 {
-	int rc;
+	int rc = 0;
 
 	pr_debug("%s: enter\n", __func__);
 
