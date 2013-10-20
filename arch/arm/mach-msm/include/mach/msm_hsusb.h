@@ -185,4 +185,5 @@ struct msm_usb_host_platform_data {
 	struct clk *ebi1_clk;
 };
 
+
 #endif

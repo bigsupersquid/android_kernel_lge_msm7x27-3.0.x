@@ -34,7 +34,7 @@
  * 2010-05-13, taehung.kim@lge.com
  */
 /* LGE_CHANGES_S [woonghee@lge.com] 2009-09-25, battery charging */
-#include <mach/msm_battery.h>
+//#include <mach/msm_battery.h>
 #include <mach/msm_battery_thunderc.h>
 #endif
 
@@ -103,7 +103,8 @@ static ssize_t power_supply_show_property(struct device *dev,
 					  struct device_attribute *attr,
 					  char *buf) {
 	static char *type_text[] = {
-		"Battery", "UPS", "Mains", "USB"
+		"Battery", "UPS", "Mains", "USB",
+		"USB_DCP", "USB_CDP", "USB_ACA"
 	};
 	static char *status_text[] = {
 		"Unknown", "Charging", "Discharging", "Not charging", "Full"
@@ -400,18 +401,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(voltage_min),
 	POWER_SUPPLY_ATTR(voltage_max_design),
 	POWER_SUPPLY_ATTR(voltage_min_design),
-#if defined (CONFIG_MACH_MSM7X27_ALOHAV) || \
-	defined (CONFIG_MACH_MSM7X27_GISELE) || defined (CONFIG_MACH_MSM7X27_THUNDERC)
-/* LGE_CHNAGE
- * ADD THUNDERC feature to use VS740 BATT DRIVER IN THUNDERC
- * 2010-05-13, taehung.kim@lge.com
- */
-	/* LGE_CHANGES_S [woonghee@lge.com]	2009-09-25, battery charging */
-	POWER_SUPPLY_ATTR(batt_vol),
-#else	/* origin */
 	POWER_SUPPLY_ATTR(voltage_now),
-#endif	
 	POWER_SUPPLY_ATTR(voltage_avg),
+	POWER_SUPPLY_ATTR(current_max),
 	POWER_SUPPLY_ATTR(current_now),
 	POWER_SUPPLY_ATTR(current_avg),
 	POWER_SUPPLY_ATTR(power_now),
@@ -431,18 +423,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(energy_avg),
 	POWER_SUPPLY_ATTR(capacity),
 	POWER_SUPPLY_ATTR(capacity_level),
-#if defined (CONFIG_MACH_MSM7X27_ALOHAV) || \
-	defined (CONFIG_MACH_MSM7X27_GISELE) || defined (CONFIG_MACH_MSM7X27_THUNDERC)
-/* LGE_CHNAGE
- * ADD THUNDERC feature to use VS740 BATT DRIVER IN THUNDERC
- * 2010-05-13, taehung.kim@lge.com
- */
-	/* LGE_CHANGES_S [woonghee@lge.com]	2009-09-25, battery charging */
-	/* need to match sysfs name, see BATTERY_TEMPERATURE_PATH */
-	POWER_SUPPLY_ATTR(batt_temp),
-#else
 	POWER_SUPPLY_ATTR(temp),
-#endif
 	POWER_SUPPLY_ATTR(temp_ambient),
 	POWER_SUPPLY_ATTR(time_to_empty_now),
 	POWER_SUPPLY_ATTR(time_to_empty_avg),
@@ -480,18 +461,6 @@ static struct device_attribute power_supply_attrs[] = {
 #endif
 };
 
-static ssize_t power_supply_show_static_attrs(struct device *dev,
-					      struct device_attribute *attr,
-					      char *buf) {
-	static char *type_text[] = { "Battery", "UPS", "Mains", "USB" };
-	struct power_supply *psy = dev_get_drvdata(dev);
-
-	return sprintf(buf, "%s\n", type_text[psy->type]);
-}
-
-static struct device_attribute power_supply_static_attrs[] = {
-	__ATTR(type, 0444, power_supply_show_static_attrs, NULL),
-};
 static struct attribute *
 __power_supply_attrs[ARRAY_SIZE(power_supply_attrs) + 1];
 
@@ -583,36 +552,6 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 	if (!prop_buf)
 		return -ENOMEM;
 
-	for (j = 0; j < ARRAY_SIZE(power_supply_static_attrs); j++) {
-		struct device_attribute *attr;
-		char *line;
-
-		attr = &power_supply_static_attrs[j];
-
-		ret = power_supply_show_static_attrs(dev, attr, prop_buf);
-		if (ret < 0)
-			goto out;
-
-		line = strchr(prop_buf, '\n');
-		if (line)
-			*line = 0;
-
-		attrname = kstruprdup(attr->attr.name, GFP_KERNEL);
-		if (!attrname) {
-			ret = -ENOMEM;
-			goto out;
-		}
-
-		dev_dbg(dev, "Static prop %s=%s\n", attrname, prop_buf);
-
-		ret = add_uevent_var(env, "POWER_SUPPLY_%s=%s", attrname, prop_buf);
-		kfree(attrname);
-		if (ret)
-			goto out;
-	}
-
-	dev_dbg(dev, "%zd dynamic props\n", psy->num_properties);
-
 	for (j = 0; j < psy->num_properties; j++) {
 		struct device_attribute *attr;
 		char *line;
@@ -620,7 +559,7 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 		attr = &power_supply_attrs[psy->properties[j]];
 
 		ret = power_supply_show_property(dev, attr, prop_buf);
-		if (ret == -ENODEV) {
+		if (ret == -ENODEV || ret == -ENODATA) {
 			/* When a battery is absent, we expect -ENODEV. Don't abort;
 			   send the uevent with at least the the PRESENT=0 property */
 			ret = 0;

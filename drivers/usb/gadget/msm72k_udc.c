@@ -2454,7 +2454,6 @@ static ssize_t show_usb_chg_current(struct device *dev,
 
 	return count;
 }
-
 static ssize_t show_usb_chg_type(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -2465,8 +2464,7 @@ static ssize_t show_usb_chg_type(struct device *dev,
 			"CARKIT",
 			"DEDICATED CHARGER",
 			"INVALID"};
-
-	count = snprintf(buf, PAGE_SIZE, "%s",
+		count = snprintf(buf, PAGE_SIZE, "%s",
 			chg_type[atomic_read(&otg->chg_type)]);
 
 	return count;

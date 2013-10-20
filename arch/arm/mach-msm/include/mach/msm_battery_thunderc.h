@@ -31,6 +31,7 @@
 #define __MSM_BATTERY_THUNDERC_H__
 
 #include <linux/power_supply.h>
+#include <mach/msm_battery.h>
 
 struct batt_info {
 	u32 valid_batt_id;
@@ -56,27 +57,27 @@ struct pseudo_batt_info_type {
 	int charging;
 };
 
-enum {
-	POWER_SUPPLY_PROP_BATTERY_ID_CHECK = POWER_SUPPLY_PROP_SERIAL_NUMBER + 1,
-	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
-	POWER_SUPPLY_PROP_PSEUDO_BATT,
+//enum {
+//	POWER_SUPPLY_PROP_BATTERY_ID_CHECK = POWER_SUPPLY_PROP_SERIAL_NUMBER + 1,
+//	POWER_SUPPLY_PROP_BATTERY_TEMP_ADC,
+//	POWER_SUPPLY_PROP_PSEUDO_BATT,
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-21, 
 	 * add charging timer from VS740
 	 */
-	POWER_SUPPLY_PROP_CHARGING_TIMER,
+//	POWER_SUPPLY_PROP_CHARGING_TIMER,
 	/* LGE_CHANGE [dojip.kim@lge.com] 2010-08-09 */
-	POWER_SUPPLY_PROP_BLOCK_CHARGING,
+//	POWER_SUPPLY_PROP_BLOCK_CHARGING,
 	/* LGE_CHANGE_S [dojip.kim@lge.com] 2010-05-17, [LS670],
 	 * add extra batt info (from LS680)
 	 */
-#if defined(CONFIG_MACH_MSM7X27_THUNDERC_SPRINT)
-	POWER_SUPPLY_PROP_BATTERY_THRM_STATE,
-	/* LGE_CHANGE [dojip.kim@lge.com] 2010-08-09 */
-#if defined(CONFIG_LGE_THERM_NO_STOP_CHARGING)
-	POWER_SUPPLY_PROP_THERM_NO_STOP_CHARGING,
-#endif
-#endif
+//#if defined(CONFIG_MACH_MSM7X27_THUNDERC_SPRINT)
+//	POWER_SUPPLY_PROP_BATTERY_THRM_STATE,
+//	/* LGE_CHANGE [dojip.kim@lge.com] 2010-08-09 */
+//#if defined(CONFIG_LGE_THERM_NO_STOP_CHARGING)
+//	POWER_SUPPLY_PROP_THERM_NO_STOP_CHARGING,
+//#endif
+//#endif
 	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-05-17 */
-};
+//};
 
 #endif

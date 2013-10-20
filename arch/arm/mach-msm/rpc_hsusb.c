@@ -640,6 +640,7 @@ void hsusb_chg_vbus_draw(unsigned mA)
 }
 EXPORT_SYMBOL(hsusb_chg_vbus_draw);
 
+enum chg_type get_usb_chg_type=USB_CHG_TYPE__INVALID;
 void hsusb_chg_connected(enum chg_type chgtype)
 {
 	char *chg_types[] = {"STD DOWNSTREAM PORT",
@@ -654,8 +655,9 @@ void hsusb_chg_connected(enum chg_type chgtype)
 	}
 
 	pr_info("\nCharger Type: %s\n", chg_types[chgtype]);
-
+	get_usb_chg_type=chgtype;
 	msm_chg_usb_charger_connected(chgtype);
 }
 EXPORT_SYMBOL(hsusb_chg_connected);
+EXPORT_SYMBOL(get_usb_chg_type);
 #endif

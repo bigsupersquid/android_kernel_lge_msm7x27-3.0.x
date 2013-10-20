@@ -69,10 +69,10 @@
 
 #include <asm/atomic.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/msm_battery.h>
+//#include <mach/msm_battery.h>
 #include <mach/msm_battery_thunderc.h>
 
-//#include <mach/rpc_hsusb.h>
+#include <mach/rpc_hsusb.h>
 
 /* LGE_CHANGE_S [woonghee.park@lge.com] 2010-03-18, ALARM */
 #if defined (CONFIG_MACH_MSM7X27_THUNDERC)
@@ -146,7 +146,7 @@ extern int msm_chg_LG_cable_type(void);
 #define LG_FACTORY_CABLE_TYPE           3
 #define LG_FACTORY_CABLE_130K_TYPE      10
 #endif
-
+extern int get_usb_chg_type;
 /* LGE_CHANGE_S [woonghee.park@lge.com] 2010-03-18, ALARM */
 #if defined (CONFIG_MACH_MSM7X27_THUNDERC)
 struct wake_lock battery_wake_lock;
@@ -444,9 +444,9 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
     if(pseudo_batt_info.mode == 1)
-      val->intval = pseudo_batt_info.volt;
+      val->intval = pseudo_batt_info.volt*1000;
     else
-		  val->intval = msm_batt_info.voltage_now;
+		  val->intval = msm_batt_info.voltage_now*1000;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
     if(pseudo_batt_info.mode == 1)
@@ -460,7 +460,7 @@ static int msm_batt_power_get_property(struct power_supply *psy,
     if(pseudo_batt_info.mode == 1)
       val->intval = pseudo_batt_info.temp;
     else
-      val->intval = msm_batt_info.battery_temp;
+      val->intval = msm_batt_info.battery_temp/10;
     break;
 	/* LGE_CHANGES_E [woonghee.park@lge.com]*/
 	/* LGE_CHANGES_S [woonghee.park@lge.com] 2010-02-09, [VS740], LG_FW_BATT_ID_CHECK, LG_FW_BATT_THM*/
@@ -533,11 +533,15 @@ static struct power_supply msm_psy_batt = {
 	.external_power_changed = msm_batt_external_power_changed,
 };
 
-enum charger_type {  // it  comes from msm_hsusb.c
-	CHG_HOST_PC,
-	CHG_WALL = 2,
-	CHG_UNDEFINED,
-};
+/* enum charger_type { //from msm_hsusb.h
+	USB_CHG_TYPE__SDP, //	CHG_HOST_PC,
+
+	USB_CHG_TYPE__CARKIT,
+	USB_CHG_TYPE__WALLCHARGER, //	CHG_WALL = 2,
+
+	USB_CHG_TYPE__INVALID // 	CHG_UNDEFINED,
+
+}; */
 
 int charger_hw_type;
 
@@ -619,7 +623,6 @@ struct rpc_reply_batt_chg {
 #endif
 	/* LGE_CHANGE_E [dojip.kim@lge.com] 2010-05-17 */
 };
-
 static struct rpc_reply_batt_chg rep_batt_chg;
 
 static int msm_batt_get_batt_chg_status_v1(u32 *batt_charging,
@@ -716,7 +719,7 @@ static int msm_batt_get_batt_chg_status_v1(u32 *batt_charging,
 	}
 
 //	charger_hw_type = msm_hsusb_get_charger_type();
-	charger_hw_type = CHG_HOST_PC;
+	charger_hw_type = get_usb_chg_type;
 	return 0;
 }
 
@@ -822,7 +825,7 @@ static int msm_batt_get_batt_chg_status(u32 *batt_charging,
 	/* LGE_CHANGES_E [woonghee.park@lge.com] */
 
 //	charger_hw_type = msm_hsusb_get_charger_type();
-	charger_hw_type = CHG_HOST_PC;
+	charger_hw_type = get_usb_chg_type;
 	return 0;
 }
 
@@ -868,20 +871,20 @@ static void msm_batt_update_psy_status(void)
 	DBG(KERN_DEBUG "batt_charging = %u  batt_valid = %u batt_volt = %u\n"
 	    "batt_level = %u charger_valid = %u chg_batt_event = %u\n"
 	    "batt_id = %u batt_therm = %u batt_temp = %u\n"
-	    "chg_current = %u batt_therm_state = %u\n",
+	    "chg_current = %u batt_therm_state = %u\n charger_hw_type = %u\n",
 	    batt_charging, msm_batt_info.batt_valid, msm_batt_info.voltage_now,
 	    msm_batt_info.batt_capacity, charger_valid, chg_batt_event,
 	    batt_info_buf.valid_batt_id, batt_info_buf.batt_therm,
 	    batt_info_buf.batt_temp,
-	    batt_info_buf.chg_current, batt_info_buf.batt_thrm_state);
+	    batt_info_buf.chg_current, batt_info_buf.batt_thrm_state, charger_hw_type);
 #else
 	DBG(KERN_DEBUG "batt_charging = %u  batt_valid = %u batt_volt = %u\n"
 	    "batt_level = %u charger_valid = %u chg_batt_event = %u\n"
-	    "batt_id = %u batt_therm = %u batt_temp = %u\n",
+	    "batt_id = %u batt_therm = %u batt_temp = %u\n charger_hw_type = %u\n",
 	    batt_charging, msm_batt_info.batt_valid, msm_batt_info.voltage_now,
 	    msm_batt_info.batt_capacity, charger_valid, chg_batt_event,
 	    batt_info_buf.valid_batt_id, batt_info_buf.batt_therm,
-	    batt_info_buf.batt_temp);
+	    batt_info_buf.batt_temp, charger_hw_type);
 #endif
 	// LGE_CHANGE [dojip.kim@lge.com] 2010-08-06, info low-battery
 	if (msm_batt_info.batt_capacity < 2)
@@ -903,11 +906,11 @@ static void msm_batt_update_psy_status(void)
 #endif
 		/* LGE_CHANGE_E [woonghee.park@lge.com] 2010-03-18, ALARM */
 		msm_batt_info.charger_valid = charger_valid;
-		if (msm_batt_info.charger_valid && charger_hw_type == CHG_HOST_PC) {
+		if (msm_batt_info.charger_valid && charger_hw_type == USB_CHG_TYPE__SDP) {
 			msm_batt_info.current_chg_source |= USB_CHG;
 			msm_batt_info.current_chg_source &= ~AC_CHG;
 			power_supply_changed(&msm_psy_usb);			
-    	} else if (msm_batt_info.charger_valid && charger_hw_type == CHG_WALL) {
+    	} else if (msm_batt_info.charger_valid && charger_hw_type == USB_CHG_TYPE__WALLCHARGER) {
 			msm_batt_info.current_chg_source |= AC_CHG;
 			msm_batt_info.current_chg_source &= ~USB_CHG;
 			power_supply_changed(&msm_psy_ac);			
@@ -1016,7 +1019,7 @@ static void msm_batt_update_psy_status(void)
 		/* LGE_CHANGE [dojip.kim@lge.com] 2010-06-03, [LS670]
 		 * display the all info in unkown
 		 */
-		msm_batt_info.battery_temp =  batt_info_buf.batt_temp * 10;
+		msm_batt_info.battery_temp =  batt_info_buf.batt_temp; // * 10;
 
 		msm_batt_info.battery_therm = batt_info_buf.batt_therm;		
 		/* LGE_CHANGES_E [woonghee.park@lge.com] */
