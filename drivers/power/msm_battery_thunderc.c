@@ -130,7 +130,7 @@
 #define RPC_TYPE_REPLY   1
 #define RPC_REQ_REPLY_COMMON_HEADER_SIZE   (3 * sizeof(uint32_t))
 
-#define DEBUG  1
+#define DEBUG  0
 
 #if DEBUG
 #define DBG(x...) printk(KERN_INFO x)
@@ -719,7 +719,10 @@ static int msm_batt_get_batt_chg_status_v1(u32 *batt_charging,
 	}
 
 //	charger_hw_type = msm_hsusb_get_charger_type();
-	charger_hw_type = get_usb_chg_type;
+	if (*batt_charging!=0)
+		charger_hw_type = get_usb_chg_type;
+	else
+		charger_hw_type =USB_CHG_TYPE__INVALID;
 	return 0;
 }
 
@@ -825,7 +828,10 @@ static int msm_batt_get_batt_chg_status(u32 *batt_charging,
 	/* LGE_CHANGES_E [woonghee.park@lge.com] */
 
 //	charger_hw_type = msm_hsusb_get_charger_type();
-	charger_hw_type = get_usb_chg_type;
+	if (*batt_charging!=0)
+		charger_hw_type = get_usb_chg_type;
+	else
+		charger_hw_type =USB_CHG_TYPE__INVALID;
 	return 0;
 }
 

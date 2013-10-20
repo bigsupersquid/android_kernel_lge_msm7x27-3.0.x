@@ -640,13 +640,14 @@ void hsusb_chg_vbus_draw(unsigned mA)
 }
 EXPORT_SYMBOL(hsusb_chg_vbus_draw);
 
-enum chg_type get_usb_chg_type=USB_CHG_TYPE__INVALID;
+enum chg_type get_usb_chg_type=USB_CHG_TYPE__INVALID; // for msm_battery_thunderc
 void hsusb_chg_connected(enum chg_type chgtype)
 {
 	char *chg_types[] = {"STD DOWNSTREAM PORT",
 			"CARKIT",
 			"DEDICATED CHARGER",
 			"INVALID"};
+	get_usb_chg_type=chgtype; // for msm_battery_thunderc
 
 	if (chgtype == USB_CHG_TYPE__INVALID) {
 		msm_chg_usb_i_is_not_available();
@@ -655,7 +656,6 @@ void hsusb_chg_connected(enum chg_type chgtype)
 	}
 
 	pr_info("\nCharger Type: %s\n", chg_types[chgtype]);
-	get_usb_chg_type=chgtype;
 	msm_chg_usb_charger_connected(chgtype);
 }
 EXPORT_SYMBOL(hsusb_chg_connected);
