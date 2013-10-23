@@ -417,6 +417,13 @@ config LGE_POWER_ON_STATUS_PATCH
 	 the same in apps processor's /proc/sys/kernel/boot_reason file.
 	 Ref: Documentation/arcr/arm/msm/boot.txt
 
+config FORCE_FAST_CHARGE
+        bool "Force AC charge mode at will"
+        default y
+        help
+          A simple sysfs interface to force adapters that
+          are detected as USB to charge as AC.
+
 endmenu
 
 endmenu
