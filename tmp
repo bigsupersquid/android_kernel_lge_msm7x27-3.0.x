@@ -1,0 +1,3 @@
+#!/system/bin/sh
+cat /sys/devices/platform/msm-battery/power_supply/battery/current_now
+

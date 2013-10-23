@@ -293,13 +293,8 @@ static ssize_t print_switch_state(struct switch_dev *sdev, char *buf)
 
 static inline enum chg_type usb_get_chg_type(struct usb_info *ui)
 {
-#ifdef CONFIG_FORCE_FAST_CHARGE
-  if (((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS) || (force_fast_charge == 1)) {
-#else
    if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
-#endif
      return USB_CHG_TYPE__WALLCHARGER;
-  }
   else 
      return USB_CHG_TYPE__SDP; 
 }
@@ -328,7 +323,11 @@ static int usb_get_max_power(struct usb_info *ui)
 	if (temp == USB_CHG_TYPE__INVALID)
 		return -ENODEV;
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if ((temp == USB_CHG_TYPE__WALLCHARGER) || (force_fast_charge == 1))
+#else
 	if (temp == USB_CHG_TYPE__WALLCHARGER)
+#endif 
 		return USB_WALLCHARGER_CHG_CURRENT;
 
 	if (suspended || !configured)
