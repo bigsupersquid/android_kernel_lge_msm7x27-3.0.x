@@ -380,6 +380,14 @@ int msm_hsusb_is_serial_num_null(uint32_t val)
 }
 EXPORT_SYMBOL(msm_hsusb_is_serial_num_null);
 
+#if defined(CONFIG_MACH_MSM7X27_ALOHAV) || defined(CONFIG_MACH_MSM7X27_THUNDERC)
+/* ADD THUNDER feature TO USE VS740 BATT DRIVER IN THUNDERC
+ * 2010-05-13, taehung.kim@lge.com
+ */
+/* woonghee@lge.com	2009-09-25, battery charging */
+static int charger_type;
+#endif
+
 int msm_chg_usb_charger_connected(uint32_t device)
 {
 	int rc = 0;
@@ -387,6 +395,14 @@ int msm_chg_usb_charger_connected(uint32_t device)
 		struct rpc_request_hdr hdr;
 		uint32_t otg_dev;
 	} req;
+
+#if defined(CONFIG_MACH_MSM7X27_ALOHAV) || defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	/* ADD THUNDER feature TO USE VS740 BATT DRIVER IN THUNDERC
+	 * 2010-05-13, taehung.kim@lge.com
+	 */
+	/* woonghee@lge.com	2009-09-25, battery charging */
+	charger_type = device;
+#endif
 
 	if (!chg_ep || IS_ERR(chg_ep))
 		return -EAGAIN;
@@ -434,6 +450,15 @@ int msm_chg_usb_i_is_not_available(void)
 	struct hsusb_start_req {
 		struct rpc_request_hdr hdr;
 	} req;
+
+#if defined(CONFIG_MACH_MSM7X27_ALOHAV) || defined(CONFIG_MACH_MSM7X27_THUNDERC)
+/* LGE_CHANGE
+ * ADD THUNDER feature TO USE VS740 BATT DRIVER IN THUNDERC
+ * 2010-05-13, taehung.kim@lge.com
+ */
+	/* LGE_CHANGES_S [woonghee@lge.com] 2009-09-25, battery charging */
+	charger_type = 3;	/* CHG_UNDEFINDED */
+#endif
 
 	if (!chg_ep || IS_ERR(chg_ep))
 		return -EAGAIN;
@@ -639,16 +664,12 @@ void hsusb_chg_vbus_draw(unsigned mA)
 	msm_chg_usb_i_is_available(mA);
 }
 EXPORT_SYMBOL(hsusb_chg_vbus_draw);
-
-enum chg_type get_usb_chg_type=USB_CHG_TYPE__INVALID; // for msm_battery_thunderc
 void hsusb_chg_connected(enum chg_type chgtype)
 {
 	char *chg_types[] = {"STD DOWNSTREAM PORT",
 			"CARKIT",
 			"DEDICATED CHARGER",
 			"INVALID"};
-	get_usb_chg_type=chgtype; // for msm_battery_thunderc
-
 	if (chgtype == USB_CHG_TYPE__INVALID) {
 		msm_chg_usb_i_is_not_available();
 		msm_chg_usb_charger_disconnected();
@@ -659,5 +680,18 @@ void hsusb_chg_connected(enum chg_type chgtype)
 	msm_chg_usb_charger_connected(chgtype);
 }
 EXPORT_SYMBOL(hsusb_chg_connected);
-EXPORT_SYMBOL(get_usb_chg_type);
 #endif
+#if defined(CONFIG_MACH_MSM7X27_ALOHAV) || defined(CONFIG_MACH_MSM7X27_THUNDERC)
+/* LGE_CHANGE
+ * ADD THUNDER feature TO USE VS740 BATT DRIVER IN THUNDERC
+ * 2010-05-13, taehung.kim@lge.com
+ */
+
+/* LGE_CHANGES_S [woonghee@lge.com] 2009-09-25, battery charging */
+int msm_hsusb_get_charger_type(void)
+{
+	return charger_type;
+}
+EXPORT_SYMBOL(msm_hsusb_get_charger_type);
+#endif
+

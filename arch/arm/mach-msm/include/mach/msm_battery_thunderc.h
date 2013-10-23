@@ -31,7 +31,6 @@
 #define __MSM_BATTERY_THUNDERC_H__
 
 #include <linux/power_supply.h>
-#include <mach/msm_battery.h>
 
 struct batt_info {
 	u32 valid_batt_id;
