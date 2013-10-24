@@ -76,8 +76,9 @@
 #endif
 
 /* TA charger */
-#define GISELE_TA_CHG_CURRENT	600
-#define GISELE_USB_CHG_CURRENT	400
+/* TA charger */
+#define LS670_TA_CHG_CURRENT	700
+#define LS670_USB_CHG_CURRENT	400
 
 #ifdef CONFIG_MACH_MSM7X27_ALESSI
 /* Camera LDO Enable */
