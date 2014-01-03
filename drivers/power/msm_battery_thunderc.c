@@ -1014,7 +1014,7 @@ static void msm_batt_update_psy_status(void)
 		/* LGE_CHANGE [dojip.kim@lge.com] 2010-06-03, [LS670]
 		 * display the all info in unkown
 		 */
-		msm_batt_info.battery_temp =  batt_info_buf.batt_temp; // * 10;
+		msm_batt_info.battery_temp =  batt_info_buf.batt_temp * 10;
 
 		msm_batt_info.battery_therm = batt_info_buf.batt_therm;		
 		/* LGE_CHANGES_E [woonghee.park@lge.com] */
