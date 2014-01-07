@@ -676,6 +676,7 @@ config CGROUP_MEM_RES_CTLR_SWAP
 	  if boot option "noswapaccount" is set, swap will not be accounted.
 	  Now, memory usage of swap_cgroup is 2 bytes per entry. If swap page
 	  size is 4096bytes, 512k per 1Gbytes of swap.
+
 config CGROUP_MEM_RES_CTLR_SWAP_ENABLED
 	bool "Memory Resource Controller Swap Extension enabled by default"
 	depends on CGROUP_MEM_RES_CTLR_SWAP
