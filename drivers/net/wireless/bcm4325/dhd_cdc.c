@@ -871,9 +871,9 @@ dhd_prot_init(dhd_pub_t *dhd)
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 
-#ifdef EMBEDDED_PLATFORM 
+#ifdef EMBEDDED_PLATFORM
 	ret = dhd_preinit_ioctls(dhd);
-#endif /* EMBEDDED_PLATFORM  */
+#endif /* EMBEDDED_PLATFORM */
 
 	/* Always assumes wl for now */
 	dhd->iswl = TRUE;

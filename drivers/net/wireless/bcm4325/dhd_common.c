@@ -298,7 +298,7 @@ dhd_iovar_op(dhd_pub_t *dhd_pub, const char *name,
 	/* Set does NOT take qualifiers */
 	ASSERT(!set || (!params && !plen));
 
-	if ((vi = bcm_iovar_lookup(dhd_iovars, name)) == NULL) { 
+	if ((vi = bcm_iovar_lookup(dhd_iovars, name)) == NULL) {
 		bcmerror = BCME_UNSUPPORTED;
 		goto exit;
 	}

@@ -581,7 +581,6 @@ bcmsdh_query_device(void *sdh)
 {
 	bcmsdh_info_t *bcmsdh = (bcmsdh_info_t *)sdh;
 	bcmsdh->vendevid = (VENDOR_BROADCOM << 16) | 0;
-
 	return (bcmsdh->vendevid);
 }
 

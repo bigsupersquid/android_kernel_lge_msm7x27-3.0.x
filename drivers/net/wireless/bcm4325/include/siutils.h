@@ -208,6 +208,7 @@ extern int si_corepciid(si_t *sih, uint func, uint16 *pcivendor, uint16 *pcidevi
 #define si_eci_init(sih) (0)
 #define si_eci_notify_bt(sih, type, val, interrupt)  (0)
 
+
 extern int si_devpath(si_t *sih, char *path, int size);
 
 extern char *si_getdevpathvar(si_t *sih, const char *name);

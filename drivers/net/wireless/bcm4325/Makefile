@@ -17,25 +17,25 @@ obj-$(CONFIG_BCM4325) += wireless.o
 obj-$(CONFIG_BRCM_USE_STATIC_BUF) += brcm_static_buf.o
 
 wireless-objs = \
-	src/dhd/sys/dhd_linux.o \
-	src/shared/linux_osl.o \
-	src/shared/bcmutils.o \
-	src/dhd/sys/dhd_common.o \
-	src/dhd/sys/dhd_custom_gpio.o \
-	src/shared/siutils.o \
-	src/shared/sbutils.o \
-	src/shared/aiutils.o \
-	src/shared/hndpmu.o \
-	src/wl/sys/wl_iw.o \
-	src/shared/bcmwifi.o \
-	src/dhd/sys/dhd_cdc.o \
-	src/dhd/sys/dhd_sdio.o \
-	src/bcmsdio/sys/bcmsdh_sdmmc.o \
-	src/bcmsdio/sys/bcmsdh.o \
-	src/bcmsdio/sys/bcmsdh_linux.o \
-	src/bcmsdio/sys/bcmsdh_sdmmc_linux.o \
+	dhd_linux.o \
+	linux_osl.o \
+	bcmutils.o \
+	dhd_common.o \
+	dhd_custom_gpio.o \
+	siutils.o \
+	sbutils.o \
+	aiutils.o \
+	hndpmu.o \
+	wl_iw.o \
+	bcmwifi.o \
+	dhd_cdc.o \
+	dhd_sdio.o \
+	bcmsdh_sdmmc.o \
+	bcmsdh.o \
+	bcmsdh_linux.o \
+	bcmsdh_sdmmc_linux.o \
 
-SRCROOT = drivers/net/wireless/bcm4325/src
+SRCROOT = drivers/net/wireless/bcm4325
 EXTRA_CFLAGS = \
 	-DLINUX \
 	-DBCMDRIVER \
@@ -56,10 +56,6 @@ EXTRA_CFLAGS = \
 	-Wall -Wstrict-prototypes \
 	-I$(SRCROOT) \
 	-I$(SRCROOT)/include \
-	-I$(SRCROOT)/shared \
-	-I$(SRCROOT)/dhd/sys \
-	-I$(SRCROOT)/dongle \
-	-I$(SRCROOT)/wl/sys \
 	\
 	-DIOCTL_RESP_TIMEOUT=1000 \
 	-DSDIO_VENDOR_ID_BROADCOM=0x2d0 \

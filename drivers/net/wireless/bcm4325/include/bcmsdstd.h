@@ -70,7 +70,8 @@ extern void sdstd_osfree(sdioh_info_t *sd);
 #define SDIOH_TYPE_RICOH_R5C822	5	/* Ricoh Co Ltd R5C822 SD/SDIO/MMC/MS/MSPro Host Adapter */
 #define SDIOH_TYPE_JMICRON	6	/* JMicron Standard SDIO Host Controller */
 
-
+/* For linux, allow yielding for dongle */
+#define BCMSDYIELD
 
 /* Expected card status value for CMD7 */
 #define SDIOH_CMD7_EXP_STATUS   0x00001E00
