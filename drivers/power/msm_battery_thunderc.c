@@ -460,7 +460,8 @@ static int msm_batt_power_get_property(struct power_supply *psy,
     if(pseudo_batt_info.mode == 1)
       val->intval = pseudo_batt_info.temp;
     else
-      val->intval = msm_batt_info.battery_temp/10;
+//      val->intval = msm_batt_info.battery_temp/10;
+      val->intval = msm_batt_info.battery_temp;
     break;
 	/* LGE_CHANGES_E [woonghee.park@lge.com]*/
 	/* LGE_CHANGES_S [woonghee.park@lge.com] 2010-02-09, [VS740], LG_FW_BATT_ID_CHECK, LG_FW_BATT_THM*/
