@@ -22,6 +22,8 @@
 #include <linux/delay.h>
 #include <linux/rfkill.h>
 
+#include "devices.h"
+
 #ifdef CONFIG_BT
 static unsigned bt_config_power_on[] = {
 	GPIO_CFG(BT_WAKE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),	/* WAKE */
@@ -55,7 +57,7 @@ static int thunderg_bluetooth_toggle_radio(void *data, bool state)
 	int ret;
 	int (*power_control)(int enable);
 
-    power_control = ((struct bluetooth_platform_data *)data)->bluetooth_power;
+        power_control = ((struct bluetooth_platform_data *)data)->bluetooth_power;
 	ret = (*power_control)((state == RFKILL_USER_STATE_SOFT_BLOCKED) ? 1 : 0);
 	return ret;
 }
@@ -64,7 +66,6 @@ static int thunderg_bluetooth_power(int on)
 {
 	int pin, rc;
 
-	
 	printk(KERN_DEBUG "%s\n", __func__);
 	printk( "%s %d\n", __func__, on);
 
@@ -105,6 +106,7 @@ static int thunderg_bluetooth_power(int on)
 			}
 		}
 	}
+
 	return 0;
 }
 
@@ -132,6 +134,8 @@ static void __init bt_power_init(void)
 #else
 #define bt_power_init(x) do {} while (0)
 #endif
+
+extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 
 static struct resource bluesleep_resources[] = {
 	{
@@ -170,9 +174,15 @@ static struct platform_device msm_bluesleep_device = {
 
 void __init lge_add_btpower_devices(void)
 {
+        int ret;
 	bt_power_init();
 #ifdef CONFIG_BT
 	platform_device_register(&msm_bt_power_device);
 #endif
-	platform_device_register(&msm_bluesleep_device);
+	ret = platform_device_register(&msm_bluesleep_device);
+        if (ret >= 0) {
+            bluesleep_setup_uart_port(&msm_device_uart_dm1);
+        } else {
+            printk(KERN_ERR "bluesleep: error registering");
+        }
 }
