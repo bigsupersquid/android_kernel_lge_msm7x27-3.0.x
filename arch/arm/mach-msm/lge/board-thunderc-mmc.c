@@ -238,7 +238,7 @@ static uint32_t msm_sdcc_setup_power(struct device *dv, unsigned int vdd)
 			rc = vreg_set_level(vreg_mmc, VREG_SD_LEVEL);
 //			rc = regulator_set_voltage(vreg_mmc, VREG_SD_LEVEL*1000, VREG_SD_LEVEL*1000);
 #else
-			rc = vreg_set_level(vreg_mmc, 2850);
+			rc = vreg_set_level(vreg_mmc, 2400);
 //			rc = regulator_set_voltage(vreg_mmc, 2850000, 2850000);
 #endif
 			if (!rc)
