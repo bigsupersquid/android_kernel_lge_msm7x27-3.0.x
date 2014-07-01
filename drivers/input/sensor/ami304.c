@@ -545,25 +545,7 @@ static ssize_t show_sensordata_value(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	char strbuf[AMI304_BUFSIZE];
-	int mx, my, mz;
-	int mxh, mxl, myh, myl, mzh, mzl;
-
 	AMI304_ReadSensorData(strbuf, AMI304_BUFSIZE);
-
-	mx = my = mz = 0;
-	mxh = mxl = myh = myl = mzh = mzl = 0;
-
-	sscanf(strbuf, "%x %x %x %x %x %x", &mxl, &mxh, &myl, &myh, &mzl, &mzh);
-	mx = mxh << 8 | mxl;
-	my = myh << 8 | myl;
-	mz = mzh << 8 | mzl;
-	if (mx>32768)  mx = mx-65536;//check negative value
-	if (my>32768)  my = my-65536;//check negative value
-	if (mz>32768)  mz = mz-65536;//check negative value
-
-	memset(strbuf, 0x00, AMI304_BUFSIZE);
-	sprintf(strbuf, "%d %d %d", mx, my, mz);
-
 	return sprintf(buf, "%s\n", strbuf);
 }
 
@@ -722,7 +704,7 @@ static struct attribute *ami304_attributes[] = {
 };
 
 static struct attribute_group ami304_attribute_group = {
-	.attrs = ami304_attributes,
+	.attrs = ami304_attributes
 };
 
 static int ami304_open(struct inode *inode, struct file *file)
@@ -1715,7 +1697,7 @@ static int __init ami304_init(void)
 	 * 20 ms by sprint request
 	 */
 	ami304mid_data.controldata[AMI304_CB_LOOPDELAY] = 20;  // Loop Delay
-	ami304mid_data.controldata[AMI304_CB_RUN] = 1;         // Run	
+	ami304mid_data.controldata[AMI304_CB_RUN] = 1;         // Run = 1	//resume = 2
 	ami304mid_data.controldata[AMI304_CB_ACCCALI] = 0;     // Start-AccCali
 	ami304mid_data.controldata[AMI304_CB_MAGCALI] = 1;     // Start-MagCali
 	ami304mid_data.controldata[AMI304_CB_ACTIVESENSORS] = 0;   // Active Sensors

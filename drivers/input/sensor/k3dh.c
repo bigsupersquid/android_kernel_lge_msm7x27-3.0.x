@@ -28,12 +28,13 @@
 #include <linux/input-polldev.h>
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
-#include <linux/slab.h> // 2.6.35 patch by youngchul.park@lge.com 2010.12.10
+#include <linux/slab.h>
+
 #include <mach/board_lge.h> // platform data
 #include <linux/akm8973.h>	// akm daemon ioctl set
 
-//#undef CONFIG_HAS_EARLYSUSPEND
-#if defined(CONFIG_HAS_EARLYSUSPEND)// LGE_DEV_PORTING GELATO_DS_[edward1.kim@lge.com]_20110419
+#undef CONFIG_HAS_EARLYSUSPEND
+#if defined(CONFIG_HAS_EARLYSUSPEND)
 #include <linux/earlysuspend.h>
 
 struct early_suspend k3dh_sensor_early_suspend;
@@ -41,153 +42,42 @@ struct early_suspend k3dh_sensor_early_suspend;
 static void k3dh_early_suspend(struct early_suspend *h);
 static void k3dh_late_resume(struct early_suspend *h);
 #endif
-
-#define K3DH_DEBUG_PRINT	(1)
-#define K3DH_ERROR_PRINT	(1)
-
-/* K3DH Debug mask value
- * usage: echo [mask_value] > /sys/module/k3dh/parameters/debug_mask
- * All		: 3
- * No msg	: 0
- * default	: 0
- */
-enum {
-	K3DH_DEBUG_FUNC_TRACE		= 1U << 0,
-	K3DH_DEBUG_DEV_LOW_DATA		= 1U << 1,
-};
-
-static unsigned int k3dh_debug_mask = 0;
-
-module_param_named(debug_mask, k3dh_debug_mask, int,
-		S_IRUGO | S_IWUSR | S_IWGRP);
-
-#if defined(K3DH_DEBUG_PRINT)
-#define K3DHD(fmt, args...) \
-			printk(KERN_INFO "D[%-18s:%5d]" \
-				fmt, __FUNCTION__, __LINE__, ##args);
-#else
-#define K3DHD(fmt, args...)	{};
-#endif
-
-#if defined(K3DH_ERROR_PRINT)
-#define K3DHE(fmt, args...) \
-			printk(KERN_ERR "E[%-18s:%5d]" \
-				fmt, __FUNCTION__, __LINE__, ##args);
-#else
-#define K3DHE(fmt, args...)	{};
-#endif
-
 #define USE_WORK_QUEUE        0
 
-
-
 /** Maximum polled-device-reported g value */
-#define	G_MAX		16000	
+#define G_MAX			8000
 
+#define SHIFT_ADJ_2G		4
+#define SHIFT_ADJ_4G		3
+#define SHIFT_ADJ_8G		2
 
-/************************************************/
-/* 	Accelerometer defines section	 	*/
-/************************************************/
+#define AXISDATA_REG		0x28
 
-/* Accelerometer Sensor Full Scale */
-#define	K3DH_ACC_FS_MASK	0x30
-#define K3DH_G_2G 			0x00
-#define K3DH_G_4G 			0x10
-#define K3DH_G_8G 			0x20
-#define K3DH_G_16G			0x30
+#define CTRL_REG1		0x20	/* ctrl 1: pm2 pm1 pm0 dr1 dr0 zenable yenable zenable */
+#define CTRL_REG2		0x21	/* filter setting */
+#define CTRL_REG3		0x22	/* interrupt control reg */
+#define CTRL_REG4		0x23
+#define CTRL_REG5		0x23	/* scale selection */
 
-#define SENSITIVITY_2G		1	/**	mg/LSB	*/
-#define SENSITIVITY_4G		2	/**	mg/LSB	*/
-#define SENSITIVITY_8G		4	/**	mg/LSB	*/
-#define SENSITIVITY_16G		12	/**	mg/LSB	*/
+#define PM_OFF          	0x00
+#define PM_NORMAL       	0x20
+#define ENABLE_ALL_AXES 	0x07
 
-// normal / low-power mode
-#define LOW_POWER_ENABLE	0X00
-#define	HIGH_RESOLUTION		0x08
+#define ODRHALF         	0x40	/* 0.5Hz output data rate */
+#define ODR1            	0x60	/* 1Hz output data rate */
+#define ODR2            	0x80	/* 2Hz output data rate */
+#define ODR5            	0xA0	/* 5Hz output data rate */
+#define ODR10           	0xC0	/* 10Hz output data rate */
+#define ODR50           	0x00	/* 50Hz output data rate */
+#define ODR100          	0x08	/* 100Hz output data rate */
+#define ODR400          	0x10	/* 400Hz output data rate */
+#define ODR1000         	0x18	/* 1000Hz output data rate */
 
-#define	AXISDATA_REG		0x28
-#define K3DH_DEVICE_ID		0x33
-
-
-
-/*	CONTROL REGISTERS	*/
-#define WHO_AM_I			0x0F	/*	WhoAmI register		*/
-#define	TEMP_CFG_REG		0x1F	/*	temper sens control reg	*/
-
-/* ctrl 1: ODR3 ODR2 ODR ODR0 LPen Zenable Yenable Zenable */
-#define	CTRL_REG1			0x20	/*	control reg 1		*/
-#define	CTRL_REG2			0x21	/*	control reg 2		*/
-#define	CTRL_REG3			0x22	/*	control reg 3		*/
-#define	CTRL_REG4			0x23	/*	control reg 4		*/
-#define	CTRL_REG5			0x24	/*	control reg 5		*/
-#define	CTRL_REG6			0x25	/*	control reg 6		*/
-
-#define	FIFO_CTRL_REG		0x2E	/*	FiFo control reg	*/
-
-#define	INT_CFG1			0x30	/*	interrupt 1 config	*/
-#define	INT_SRC1			0x31	/*	interrupt 1 source	*/
-#define	INT_THS1			0x32	/*	interrupt 1 threshold	*/
-#define	INT_DUR1			0x33	/*	interrupt 1 duration	*/
-
-#define	INT_CFG2			0x34	/*	interrupt 2 config	*/
-#define	INT_SRC2			0x35	/*	interrupt 2 source	*/
-#define	INT_THS2			0x36	/*	interrupt 2 threshold	*/
-#define	INT_DUR2			0x37	/*	interrupt 2 duration	*/
-
-#define	TT_CFG				0x38	/*	tap config		*/
-#define	TT_SRC				0x39	/*	tap source		*/
-#define	TT_THS				0x3A	/*	tap threshold		*/
-#define	TT_LIM				0x3B	/*	tap time limit		*/
-#define	TT_TLAT				0x3C	/*	tap time latency	*/
-#define	TT_TW				0x3D	/*	tap time window		*/
-/*	end CONTROL REGISTRES	*/
-
-#define PM_OFF				0x00
-#define ENABLE_ALL_AXES		0x07
-
-#define ODR1				0x10  /* 1Hz output data rate */
-#define ODR10				0x20  /* 10Hz output data rate */
-#define ODR25				0x30  /* 25Hz output data rate */
-#define ODR50				0x40  /* 50Hz output data rate */
-#define ODR100				0x50  /* 100Hz output data rate */
-#define ODR200				0x60  /* 200Hz output data rate */
-#define ODR400				0x70  /* 400Hz output data rate */
-#define ODR1250				0x90  /* 1250Hz output data rate */
-
-#define	FUZZ				32
-#define	FLAT				32
-#define	I2C_RETRY_DELAY		5
-#define	I2C_RETRIES			5
-#define	I2C_AUTO_INCREMENT	0x80
-
-
-/* RESUME STATE INDICES */
-#define	RES_CTRL_REG1		0
-#define	RES_CTRL_REG2		1
-#define	RES_CTRL_REG3		2
-#define	RES_CTRL_REG4		3
-#define	RES_CTRL_REG5		4
-#define	RES_CTRL_REG6		5
-
-#define	RES_INT_CFG1		6
-#define	RES_INT_THS1		7
-#define	RES_INT_DUR1		8
-#define	RES_INT_CFG2		9
-#define	RES_INT_THS2		10
-#define	RES_INT_DUR2		11
-
-#define	RES_TT_CFG			12
-#define	RES_TT_THS			13
-#define	RES_TT_LIM			14
-#define	RES_TT_TLAT			15
-#define	RES_TT_TW			16
-
-#define	RES_TEMP_CFG_REG	17
-#define	RES_REFERENCE_REG	18
-#define	RES_FIFO_CTRL_REG	19
-
-#define	RESUME_ENTRIES		20
-
+#define FUZZ			32
+#define FLAT			32
+#define I2C_RETRY_DELAY		5
+#define I2C_RETRIES		5
+#define AUTO_INCREMENT		0x80
 
 /** The following define the IOCTL command values via the ioctl macros */
 #define K3DH_IOCTL_BASE 'a'
@@ -198,21 +88,31 @@ module_param_named(debug_mask, k3dh_debug_mask, int,
 #define K3DH_IOCTL_SET_G_RANGE		_IOW(K3DH_IOCTL_BASE, 4, int)
 #define K3DH_IOCTL_READ_ACCEL_XYZ	_IOW(K3DH_IOCTL_BASE, 8, int)
 
+#define OUT_X          0x29
+#define OUT_Y          0x2B
+#define OUT_Z          0x2D
+#define K3DH_G_2G 0x00
+#define K3DH_G_4G 0x10
+#define K3DH_G_8G 0x30
+
+#define WHO_AM_I		0x0F
+
+#define K3DH_DEVICE_ID	0x33
+
 struct {
 	unsigned int cutoff;
 	unsigned int mask;
 } odr_table[] = {
-			{ 1, ODR1250 },
-			{ 3, ODR400 },
-			{ 5, ODR200 },
-			{ 10, ODR100 },
-			{ 20, ODR50 },
-			{ 40, ODR25 },
-			{ 100, ODR10 },
-			{ 1000, ODR1 },
+	{ 3,	PM_NORMAL | ODR1000}, 
+	{ 10,	PM_NORMAL | ODR400}, 
+	{ 20,	PM_NORMAL | ODR100}, 
+	{ 100,	PM_NORMAL | ODR50}, 
+	{ 200,	ODR1000	| ODR10}, 
+	{ 500,	ODR1000 | ODR5}, 
+	{ 1000,	ODR1000 | ODR2}, 
+	{ 2000,	ODR1000 | ODR1}, 
+	{ 0,	ODR1000 | ODRHALF},
 };
-
-
 
 struct k3dh_data {
 	struct i2c_client *client;
@@ -227,11 +127,12 @@ struct k3dh_data {
 	atomic_t enabled;
 	int on_before_suspend;
 
-	int hw_working;
-	u8 sensitivity;
-	u8 resume_state[RESUME_ENTRIES];
-
+	u8 shift_adj;
+	u8 resume_state[5];
 };
+
+// LGE_CHANGE [dojip.kim@lge.com] 2010-08-19, x, y, z for sysfs
+static unsigned char k3dh_xyz[3] = {0,};
 
 /*
  * Because misc devices can not carry a pointer from driver register to
@@ -245,17 +146,17 @@ static int k3dh_i2c_read(struct k3dh_data *kr, u8 * buf, int len)
 	int tries = 0;
 	struct i2c_msg msgs[] = {
 		{
-		 .addr = kr->client->addr,
-		 .flags = kr->client->flags & I2C_M_TEN,
-		 .len = 1,
-		 .buf = buf,
-		 },
+			.addr = kr->client->addr,
+			.flags = kr->client->flags & I2C_M_TEN,
+			.len = 1,
+			.buf = buf,
+		},
 		{
-		 .addr = kr->client->addr,
-		 .flags = (kr->client->flags & I2C_M_TEN) | I2C_M_RD,
-		 .len = len,
-		 .buf = buf,
-		 },
+			.addr = kr->client->addr,
+			.flags = (kr->client->flags & I2C_M_TEN) | I2C_M_RD,
+			.len = len,
+			.buf = buf,
+		},
 	};
 
 	do {
@@ -296,123 +197,38 @@ static int k3dh_i2c_write(struct k3dh_data *kr, u8 * buf, int len)
 	if (err != 1) {
 		dev_err(&kr->client->dev, "write transfer error\n");
 		err = -EIO;
-	} else {
+	} 
+	else {
 		err = 0;
 	}
 
 	return err;
 }
 
-
 static int k3dh_hw_init(struct k3dh_data *kr)
 {
 	int err = -1;
-	u8 buf[7];
+	u8 buf[6];
 
-	buf[0] = WHO_AM_I;
-	err = k3dh_i2c_read(kr, buf, 1);
-	if (err < 0)
-		goto error_firstread;
-	else
-		kr->hw_working = 1;
-	if (buf[0] != K3DH_DEVICE_ID) {
-		err = -1; /* choose the right coded error */
-		goto error_unknown_device;
-	}
-
-	buf[0] = CTRL_REG1;
-	buf[1] = kr->resume_state[RES_CTRL_REG1];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = TEMP_CFG_REG;
-	buf[1] = kr->resume_state[RES_TEMP_CFG_REG];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = FIFO_CTRL_REG;
-	buf[1] = kr->resume_state[RES_FIFO_CTRL_REG];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = (I2C_AUTO_INCREMENT | TT_THS);
-	buf[1] = kr->resume_state[RES_TT_THS];
-	buf[2] = kr->resume_state[RES_TT_LIM];
-	buf[3] = kr->resume_state[RES_TT_TLAT];
-	buf[4] = kr->resume_state[RES_TT_TW];
-	err = k3dh_i2c_write(kr, buf, 4);
-	if (err < 0)
-		goto error1;
-	buf[0] = TT_CFG;
-	buf[1] = kr->resume_state[RES_TT_CFG];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = (I2C_AUTO_INCREMENT | INT_THS1);
-	buf[1] = kr->resume_state[RES_INT_THS1];
-	buf[2] = kr->resume_state[RES_INT_DUR1];
-	err = k3dh_i2c_write(kr, buf, 2);
-	if (err < 0)
-		goto error1;
-	buf[0] = INT_CFG1;
-	buf[1] = kr->resume_state[RES_INT_CFG1];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = (I2C_AUTO_INCREMENT | INT_THS2);
-	buf[1] = kr->resume_state[RES_INT_THS2];
-	buf[2] = kr->resume_state[RES_INT_DUR2];
-	err = k3dh_i2c_write(kr, buf, 2);
-	if (err < 0)
-		goto error1;
-	buf[0] = INT_CFG2;
-	buf[1] = kr->resume_state[RES_INT_CFG2];
-	err = k3dh_i2c_write(kr, buf, 1);
-	if (err < 0)
-		goto error1;
-
-	buf[0] = (I2C_AUTO_INCREMENT | CTRL_REG2);
-	buf[1] = kr->resume_state[RES_CTRL_REG2];
-	buf[2] = kr->resume_state[RES_CTRL_REG3];
-	buf[3] = kr->resume_state[RES_CTRL_REG4];
-	buf[4] = kr->resume_state[RES_CTRL_REG5];
-	buf[5] = kr->resume_state[RES_CTRL_REG6];
+	buf[0] = (AUTO_INCREMENT | CTRL_REG1);
+	buf[1] = kr->resume_state[0];
+	buf[2] = kr->resume_state[1];
+	buf[3] = kr->resume_state[2];
+	buf[4] = kr->resume_state[3];
+	buf[5] = kr->resume_state[4];
 	err = k3dh_i2c_write(kr, buf, 5);
 	if (err < 0)
-		goto error1;
+		return err;
 
 	kr->hw_initialized = 1;
-	return 0;
 
-error_firstread:
-	kr->hw_working = 0;
-	dev_warn(&kr->client->dev, "Error reading WHO_AM_I: is device "
-		"available/working?\n");
-	goto error1;
-error_unknown_device:
-	dev_err(&kr->client->dev,
-		"device unknown. Expected: 0x%x,"
-		" Replies: 0x%x\n", K3DH_DEVICE_ID, buf[0]);
-error1:
-	kr->hw_initialized = 0;
-	dev_err(&kr->client->dev, "hw init error 0x%x,0x%x: %d\n", buf[0],
-			buf[1], err);
-	return err;
+	return 0;
 }
 
 static void k3dh_device_power_off(struct k3dh_data *kr)
 {
 	int err;
 	u8 buf[2] = {CTRL_REG1, PM_OFF};
-
-
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "k3dh_device_power_off()");
 
 	err = k3dh_i2c_write(kr, buf, 1);
 	if (err < 0)
@@ -429,15 +245,12 @@ static int k3dh_device_power_on(struct k3dh_data *kr)
 
 	int err;
 
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "k3dh_device_power_on()");
-
 	if (kr->pdata->power_on) {
 		err = kr->pdata->power_on();
 		if (err < 0)
 			return err;
 
-		mdelay(5);	// K3DH boot up time
+		mdelay(100);	// K3DH boot up time
 	}
 
 	if (!kr->hw_initialized) {
@@ -451,45 +264,24 @@ static int k3dh_device_power_on(struct k3dh_data *kr)
 	return 0;
 }
 
-
-
-
-
 int k3dh_update_g_range(struct k3dh_data *kr, u8 new_g_range)
 {
 	int err;
-
-	u8 sensitivity;
+	u8 shift;
 	u8 buf[2];
-	u8 updated_val;
-	u8 init_val;
-	u8 new_val;
-	u8 mask = K3DH_ACC_FS_MASK | HIGH_RESOLUTION;
 
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s: G-Range : %d\n", "k3dh_update_g_range()", new_g_range);
-	
 	switch (new_g_range) {
-	case K3DH_G_2G:
-
-		sensitivity = SENSITIVITY_2G;
-		break;
-	case K3DH_G_4G:
-
-		sensitivity = SENSITIVITY_4G;
-		break;
-	case K3DH_G_8G:
-
-		sensitivity = SENSITIVITY_8G;
-		break;
-	case K3DH_G_16G:
-
-		sensitivity = SENSITIVITY_16G;
-		break;
-	default:
-		dev_err(&kr->client->dev, "invalid g range requested: %u\n",
-				new_g_range);
-		return -EINVAL;
+		case K3DH_G_2G:
+			shift = SHIFT_ADJ_2G;
+			break;
+		case K3DH_G_4G:
+			shift = SHIFT_ADJ_4G;
+			break;
+		case K3DH_G_8G:
+			shift = SHIFT_ADJ_8G;
+			break;
+		default:
+			return -EINVAL;
 	}
 
 	if (atomic_read(&kr->enabled)) {
@@ -500,32 +292,17 @@ int k3dh_update_g_range(struct k3dh_data *kr, u8 new_g_range)
 		 *  out the value and only change the relevant bits --XX----
 		 *  (marked by X) */
 		buf[0] = CTRL_REG4;
-		err = k3dh_i2c_read(kr, buf, 1);
-		if (err < 0)
-			goto error;
-		init_val = buf[0];
-		kr->resume_state[RES_CTRL_REG4] = init_val;
-		new_val = new_g_range | HIGH_RESOLUTION;
-		updated_val = ((mask & new_val) | ((~mask) & init_val));
-		buf[1] = updated_val;
-		buf[0] = CTRL_REG4;
+		buf[1] = new_g_range;
 		err = k3dh_i2c_write(kr, buf, 1);
 		if (err < 0)
-			goto error;
-		kr->resume_state[RES_CTRL_REG4] = updated_val;
-		kr->sensitivity = sensitivity;
+			return err;
 	}
 
+	kr->resume_state[3] = new_g_range;
+	kr->shift_adj = shift;
 
 	return 0;
-error:
-	dev_err(&kr->client->dev, "update g range failed 0x%x,0x%x: %d\n",
-			buf[0], buf[1], err);
-
-	return err;
 }
-
-
 
 int k3dh_update_odr(struct k3dh_data *kr, int poll_interval)
 {
@@ -538,12 +315,12 @@ int k3dh_update_odr(struct k3dh_data *kr, int poll_interval)
 	 *  maintained due to the cascading cut off values - poll intervals are
 	 *  checked from shortest to longest.  At each check, if the next lower
 	 *  ODR cannot support the current poll interval, we stop searching */
-	for (i = ARRAY_SIZE(odr_table) - 1; i >= 0; i--) {
-		if (odr_table[i].cutoff <= poll_interval)
+	for (i = 0; i < ARRAY_SIZE(odr_table); i++) {
+		config[1] = odr_table[i].mask;
+		if (poll_interval < odr_table[i].cutoff)
 			break;
 	}
-	config[1]  = odr_table[i].mask;
-	config[1] |= LOW_POWER_ENABLE;
+
 	config[1] |= ENABLE_ALL_AXES;
 
 	/* If device is currently enabled, we need to write new
@@ -552,62 +329,55 @@ int k3dh_update_odr(struct k3dh_data *kr, int poll_interval)
 		config[0] = CTRL_REG1;
 		err = k3dh_i2c_write(kr, config, 1);
 		if (err < 0)
-			goto error;
-		kr->resume_state[RES_CTRL_REG1] = config[1];
+			return err;
 	}
 
+	kr->resume_state[0] = config[1];
+
 	return 0;
-
-error:
-	dev_err(&kr->client->dev, "update odr failed 0x%x,0x%x: %d\n",
-			config[0], config[1], err);
-
-	return err;
 }
 
-
-static int k3dh_get_acceleration_data(struct k3dh_data *kr,
-		int *xyz)
+static int k3dh_get_acceleration_data(struct k3dh_data *kr, int *xyz)
 {
 	int err = -1;
 	/* Data bytes from hardware xL, xH, yL, yH, zL, zH */
 	u8 acc_data[6];
 	/* x,y,z hardware data */
-	s16 hw_d[3] = { 0 };
+	int hw_d[3] = { 0 };
 
-	acc_data[0] = (I2C_AUTO_INCREMENT | AXISDATA_REG);
+	acc_data[0] = (AUTO_INCREMENT | AXISDATA_REG);
 	err = k3dh_i2c_read(kr, acc_data, 6);
 	if (err < 0)
 		return err;
 
-	hw_d[0] = (((s16) ((acc_data[1] << 8) | acc_data[0])) >> 4);
-	hw_d[1] = (((s16) ((acc_data[3] << 8) | acc_data[2])) >> 4);
-	hw_d[2] = (((s16) ((acc_data[5] << 8) | acc_data[4])) >> 4);
+	hw_d[0] = (int) (((acc_data[1]) << 8) | acc_data[0]);
+	hw_d[1] = (int) (((acc_data[3]) << 8) | acc_data[2]);
+	hw_d[2] = (int) (((acc_data[5]) << 8) | acc_data[4]);
 
+	// LGE_CHANGE [dojip.kim@lge.com] 2010-08-19, x, y, z for sysfs
+	k3dh_xyz[0] = (unsigned char)(hw_d[0] >> 4);
+	k3dh_xyz[1] = (unsigned char)(hw_d[1] >> 4);
+	k3dh_xyz[2] = (unsigned char)(hw_d[2] >> 4);
 
-	hw_d[0] = hw_d[0] * kr->sensitivity;
-	hw_d[1] = hw_d[1] * kr->sensitivity;
-	hw_d[2] = hw_d[2] * kr->sensitivity;
+	hw_d[0] = (hw_d[0] & 0x8000) ? (hw_d[0] | 0xFFFF0000) : (hw_d[0]);
+	hw_d[1] = (hw_d[1] & 0x8000) ? (hw_d[1] | 0xFFFF0000) : (hw_d[1]);
+	hw_d[2] = (hw_d[2] & 0x8000) ? (hw_d[2] | 0xFFFF0000) : (hw_d[2]);
 
+	hw_d[0] >>= kr->shift_adj;
+	hw_d[1] >>= kr->shift_adj;
+	hw_d[2] >>= kr->shift_adj;
 
 	xyz[0] = ((kr->pdata->negate_x) ? (-hw_d[kr->pdata->axis_map_x])
-		   : (hw_d[kr->pdata->axis_map_x]));
+		  : (hw_d[kr->pdata->axis_map_x]));
 	xyz[1] = ((kr->pdata->negate_y) ? (-hw_d[kr->pdata->axis_map_y])
-		   : (hw_d[kr->pdata->axis_map_y]));
+		  : (hw_d[kr->pdata->axis_map_y]));
 	xyz[2] = ((kr->pdata->negate_z) ? (-hw_d[kr->pdata->axis_map_z])
-		   : (hw_d[kr->pdata->axis_map_z]));
+		  : (hw_d[kr->pdata->axis_map_z]));
 
-	// ks82.jung@lge.com
-	// printk(KERN_INFO "%s: kr->sensitivity : %d\n", "k3dh_get_acceleration_data()", kr->sensitivity);
-	// printk(KERN_INFO "x=%10d, y=%10d, z=%10d\n", xyz[0],xyz[1], xyz[2]);
+	//dev_info(&kr->client->dev, "(x, y ,z) = (%d, %d, %d)\n", xyz[0],xyz[1], xyz[2]);
 
-	if (K3DH_DEBUG_DEV_LOW_DATA & k3dh_debug_mask)
-		K3DHD("x=%10d, y=%10d, z=%10d\n", xyz[0],xyz[1], xyz[2]);
-	
 	return err;
 }
-
-
 
 #if USE_WORK_QUEUE
 static void k3dh_report_values(struct k3dh_data *kr, int *xyz)
@@ -623,26 +393,33 @@ static void k3dh_report_values(struct k3dh_data *kr, int *xyz)
 
 static int k3dh_enable(struct k3dh_data *kr)
 {
-	atomic_set(&kr->enabled, 1);
-	k3dh_device_power_on(kr);
+	int err;
 
+	if (!atomic_cmpxchg(&kr->enabled, 0, 1)) {
+
+		err = k3dh_device_power_on(kr);
+		if (err < 0) {
+			atomic_set(&kr->enabled, 0);
+			return err;
+		}
 #if USE_WORK_QUEUE
 		schedule_delayed_work(&kr->input_work,
-				      msecs_to_jiffies(kr->
-						       pdata->poll_interval));
+			      msecs_to_jiffies(kr->pdata->poll_interval));
 #endif
+
+	}
 
 	return 0;
 }
 
 static int k3dh_disable(struct k3dh_data *kr)
 {
-	atomic_set(&kr->enabled, 0);
-	k3dh_device_power_off(kr);
-
+	if (atomic_cmpxchg(&kr->enabled, 1, 0)) {
 #if USE_WORK_QUEUE
 		cancel_delayed_work_sync(&kr->input_work);
 #endif
+		k3dh_device_power_off(kr);
+	}
 
 	return 0;
 }
@@ -659,18 +436,14 @@ static int k3dh_misc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long k3dh_misc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static int k3dh_misc_ioctl(struct inode *inode, struct file *file,
+				unsigned int cmd, unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
-	int buf[4];
-	long err;
+	int buf[3];
+	int err;
 	int interval;
-	u8 bit_values;
 	struct k3dh_data *kr = file->private_data;
-
-
-	// ks82.jung@lge.com
-	// printk(KERN_INFO "%s\n", "k3dh_misc_ioctl()");
 
 	switch (cmd) {
 	case K3DH_IOCTL_GET_DELAY:
@@ -715,12 +488,12 @@ static long k3dh_misc_ioctl(struct file *file, unsigned int cmd, unsigned long a
 		break;
 
 	case K3DH_IOCTL_SET_G_RANGE:
-		if (copy_from_user(buf, argp, 1))
+		if (copy_from_user(&buf, argp, 1))
 			return -EFAULT;
-		bit_values = buf[0];
-		err = k3dh_update_g_range(kr, bit_values);
+		err = k3dh_update_g_range(kr, arg);
 		if (err < 0)
 			return err;
+
 		break;
 
 	case K3DH_IOCTL_READ_ACCEL_XYZ:
@@ -734,8 +507,8 @@ static long k3dh_misc_ioctl(struct file *file, unsigned int cmd, unsigned long a
 		return err;
 
 		break;
-
-	case AKMD2_TO_ACCEL_IOCTL_READ_XYZ:	/* LGE_CHANGE [hyesung.shin@lge.com] on 2010-1-23, for <Sensor driver structure> */
+#if 0
+	case AKMD2_TO_ACCEL_IOCTL_READ_XYZ:
 		err=k3dh_get_acceleration_data(kr, buf);
 		if (err < 0)
 				return err;
@@ -746,7 +519,7 @@ static long k3dh_misc_ioctl(struct file *file, unsigned int cmd, unsigned long a
 		return err;
 
 		break;
-
+#endif
 	default:
 		return -EINVAL;
 	}
@@ -757,7 +530,7 @@ static long k3dh_misc_ioctl(struct file *file, unsigned int cmd, unsigned long a
 static const struct file_operations k3dh_misc_fops = {
 	.owner = THIS_MODULE,
 	.open = k3dh_misc_open,
-	.unlocked_ioctl = k3dh_misc_ioctl,
+	.ioctl = k3dh_misc_ioctl,
 };
 
 static struct miscdevice k3dh_misc_device = {
@@ -890,81 +663,40 @@ static void k3dh_input_cleanup(struct k3dh_data *kr)
 	input_free_device(kr->input_dev);
 }
 
-static ssize_t show_enable_value(struct device *dev, 
-		struct device_attribute *attr, char *buf)
+// LGE_CHANGE_S [dojip.kim@lge.com] 2010-08-19, sysfs
+static ssize_t k3dh_x_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
 {
-	char strbuf[256];
-	struct i2c_client *client = i2c_verify_client(dev);
-	struct k3dh_data *kr = i2c_get_clientdata(client);
-
-
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "show_enable_value()");
-
-
-	
-	sprintf(strbuf, "%d", atomic_read(&kr->enabled));
-	return sprintf(buf, "%s\n", strbuf);
+	return sprintf(buf, "%d\n", k3dh_xyz[0]);
 }
 
-static ssize_t store_enable_value(struct device *dev, 
-		struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t k3dh_y_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
 {
-	int mode=0;
-	struct i2c_client *client = i2c_verify_client(dev);
-	struct k3dh_data *kr = i2c_get_clientdata(client);
-
-
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "store_enable_value()");
-
-	sscanf(buf, "%d", &mode);
-	if (mode) {
-			k3dh_device_power_on(kr);
-			atomic_set(&kr->enabled, 1);
-			printk(KERN_INFO "Power On Enable\n");
-	}
-	else {
-			k3dh_device_power_off(kr);
-			atomic_set(&kr->enabled, 0);
-			printk(KERN_INFO "Power Off Disable\n");
-	}
-	return 0;
+	return sprintf(buf, "%d\n", k3dh_xyz[1]);
 }
 
-static ssize_t show_sensordata_value(struct device *dev, 
-		struct device_attribute *attr, char *buf)
+static ssize_t k3dh_z_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
 {
-	char strbuf[5];
-	int xyz[3];
-
-	struct i2c_client *client = i2c_verify_client(dev);
-	struct k3dh_data *kr = i2c_get_clientdata(client);
-
-
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "show_sensordata_value()");
-
-
-	k3dh_get_acceleration_data(kr, xyz);
-	sprintf(strbuf, "%d %d %d", xyz[0], xyz[1], xyz[2]);
-	return sprintf(buf, "%s\n",strbuf);
+	return sprintf(buf, "%d\n", k3dh_xyz[2]);
 }
 
-static DEVICE_ATTR(enable, S_IRUGO | S_IWUSR, show_enable_value, store_enable_value);
-static DEVICE_ATTR(sensordata, S_IRUGO, show_sensordata_value, NULL);
+static DEVICE_ATTR(x, S_IRUGO, k3dh_x_show, NULL);
+static DEVICE_ATTR(y, S_IRUGO, k3dh_y_show, NULL);
+static DEVICE_ATTR(z, S_IRUGO, k3dh_z_show, NULL);
 
-
-static struct attribute *krd_attributes[] = {
-
-	&dev_attr_enable.attr,
-	&dev_attr_sensordata.attr,
-	NULL,
+static struct attribute *dev_attrs[] = {
+	&dev_attr_x.attr,
+	&dev_attr_y.attr,
+	&dev_attr_z.attr,
+	NULL
 };
 
-static struct attribute_group krd_attribute_group = {
-	.attrs = krd_attributes,
+static struct attribute_group dev_attr_grp = {
+	.attrs = dev_attrs,
 };
+// LGE_CHANGE_E [dojip.kim@lge.com] 2010-08-19, sysfs
 
 static int k3dh_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
@@ -972,11 +704,6 @@ static int k3dh_probe(struct i2c_client *client,
 	struct k3dh_data *kr;
 	int err = -1;
 	u8 id_check = WHO_AM_I;
-
-
-
-	// ks82.jung@lge.com
-	printk(KERN_INFO "%s\n", "k3dh_probe()");
 
 	if (client->dev.platform_data == NULL) {
 		dev_err(&client->dev, "platform data is NULL. exiting.\n");
@@ -990,21 +717,24 @@ static int k3dh_probe(struct i2c_client *client,
 		goto err0;
 	}
 
-	kr = kzalloc(sizeof(*kr), GFP_KERNEL);
+	kr = kzalloc(sizeof(struct k3dh_data), GFP_KERNEL);
 	if (kr == NULL) {
 		dev_err(&client->dev,
 			"failed to allocate memory for module data\n");
 		err = -ENOMEM;
+		printk("k3dh_data kmalloc Error\n");
 		goto err0;
 	}
-
+	
 	mutex_init(&kr->lock);
 	mutex_lock(&kr->lock);
 	kr->client = client;
 
-	kr->pdata = kmalloc(sizeof(*kr->pdata), GFP_KERNEL);
-	if (kr->pdata == NULL)
+	kr->pdata = kmalloc(sizeof(struct k3dh_platform_data), GFP_KERNEL);
+	if (kr->pdata == NULL){
+		printk("k3dh_platform_data kmalloc Error\n");
 		goto err1;
+	}
 
 	memcpy(kr->pdata, client->dev.platform_data, sizeof(*kr->pdata));
 
@@ -1025,31 +755,17 @@ static int k3dh_probe(struct i2c_client *client,
 	memset(kr->resume_state, 0, ARRAY_SIZE(kr->resume_state));
 
 	/* control register setting */
-	kr->resume_state[RES_CTRL_REG1] = ENABLE_ALL_AXES;
-	kr->resume_state[RES_CTRL_REG2] = 0;
-	kr->resume_state[RES_CTRL_REG3] = 0;
-	kr->resume_state[RES_CTRL_REG4] = 0;
-	kr->resume_state[RES_CTRL_REG5] = 0;
-	kr->resume_state[RES_CTRL_REG6] = 0;
-
-	kr->resume_state[RES_TEMP_CFG_REG] = 0;
-	kr->resume_state[RES_FIFO_CTRL_REG] = 0;
-	kr->resume_state[RES_INT_CFG1] = 0;
-	kr->resume_state[RES_INT_THS1] = 0;
-	kr->resume_state[RES_INT_DUR1] = 0;
-	kr->resume_state[RES_INT_CFG2] = 0;
-	kr->resume_state[RES_INT_THS2] = 0;
-	kr->resume_state[RES_INT_DUR2] = 0;
-
-	kr->resume_state[RES_TT_CFG] = 0;
-	kr->resume_state[RES_TT_THS] = 0;
-	kr->resume_state[RES_TT_LIM] = 0;
-	kr->resume_state[RES_TT_TLAT] = 0;
-	kr->resume_state[RES_TT_TW] = 0;
+	kr->resume_state[0] = PM_NORMAL | ENABLE_ALL_AXES;
+	kr->resume_state[1] = 0;
+	kr->resume_state[2] = 0;
+	kr->resume_state[3] = 0;
+	kr->resume_state[4] = 0;
 
 	err = k3dh_device_power_on(kr);
-	if (err < 0)
+	if (err < 0){
+		dev_err(&client->dev, "Power On Fail");
 		goto err2;
+	}
 
 	err = k3dh_i2c_read(kr, &id_check, 1);
 	if(id_check != K3DH_DEVICE_ID)
@@ -1074,8 +790,11 @@ static int k3dh_probe(struct i2c_client *client,
 	}
 
 	err = k3dh_input_init(kr);
-	if (err < 0)
+	
+	if (err < 0){
+		printk("%s : K3DH Probe k3dh device init FAIL!\n",__func__);	
 		goto err3;
+	}
 
 	k3dh_misc_data = kr;
 
@@ -1084,14 +803,6 @@ static int k3dh_probe(struct i2c_client *client,
 		dev_err(&client->dev, "krd_device register failed\n");
 		goto err4;
 	}
-
-	/* Register sysfs hooks */
-	err = sysfs_create_group(&client->dev.kobj, &krd_attribute_group);
-	if (err) {
-		dev_err(&client->dev, "krd sysfs register failed\n");
-		goto err5;
-	}
-
 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 	k3dh_sensor_early_suspend.suspend = k3dh_early_suspend;
@@ -1109,12 +820,13 @@ static int k3dh_probe(struct i2c_client *client,
 
 	mutex_unlock(&kr->lock);
 
+	// LGE_CHANGE [dojip.kim@lge.com] 2010-08-19, sysfs
+	sysfs_create_group(&client->dev.kobj, &dev_attr_grp);
+
 	dev_info(&client->dev, "%s k3dh: Accelerometer chip found\n", client->name);
 
 	return 0;
 
-err5:	
-	sysfs_remove_group(&client->dev.kobj, &krd_attribute_group);
 err4:
 	k3dh_input_cleanup(kr);
 err3:
@@ -1135,7 +847,9 @@ static int __devexit k3dh_remove(struct i2c_client *client)
 {
 	/* TODO: revisit ordering here once _probe order is finalized */
 	struct k3dh_data *kr = i2c_get_clientdata(client);
-	sysfs_remove_group(&client->dev.kobj, &krd_attribute_group);
+
+	// LGE_CHANGE [dojip.kim@lge.com] 2010-08-19, sysfs
+	sysfs_remove_group(&client->dev.kobj, &dev_attr_grp);
 
 	misc_deregister(&k3dh_misc_device);
 	k3dh_input_cleanup(kr);
@@ -1152,15 +866,15 @@ static int __devexit k3dh_remove(struct i2c_client *client)
 	return 0;
 }
 
-#if defined(CONFIG_HAS_EARLYSUSPEND)// LGE_DEV_PORTING GELATO_DS_[edward1.kim@lge.com]_20110419
+#if defined(CONFIG_HAS_EARLYSUSPEND)
 static void k3dh_early_suspend(struct early_suspend *h)
 {
-	atomic_set(&k3dh_misc_data->enabled, 0);
+	k3dh_disable(k3dh_misc_data);
 }
 
 static void k3dh_late_resume(struct early_suspend *h)
 {
-	atomic_set(&k3dh_misc_data->enabled, 1);
+	k3dh_enable(k3dh_misc_data);
 }
 #endif
 
@@ -1170,27 +884,7 @@ static int k3dh_resume(struct device *device)
 	struct i2c_client *client = i2c_verify_client(device);
 	struct k3dh_data *kr = i2c_get_clientdata(client);
 
-	if (kr->pdata->gpio_config){
-			kr->pdata->gpio_config(1);
-	}
-	
-#if 0
-	int err = 0;
-
-	if (kr->on_before_suspend){
-
-		kr->pdata->gpio_config(1);
-
-		return k3dh_enable(kr);
-	}
-
-	err =  k3dh_hw_init(kr);
-	if (err < 0)
-		printk("%s i2c failed\n", __FUNCTION__);
-
-	return 0;
-#endif
-
+	kr->pdata->gpio_config(1);
 	return k3dh_enable(kr);
 }
 
@@ -1199,18 +893,7 @@ static int k3dh_suspend(struct device *device)
 	struct i2c_client *client = i2c_verify_client(device);
 	struct k3dh_data *kr = i2c_get_clientdata(client);
 
-	if (kr->pdata->gpio_config){
-			kr->pdata->gpio_config(0);
-	}
-	
-#if 0
-	kr->on_before_suspend = atomic_read(&kr->enabled);
-
-	if (kr->on_before_suspend){
-		kr->pdata->gpio_config(0);
-	}
-#endif
-
+	kr->pdata->gpio_config(0);
 	return k3dh_disable(kr);
 }
 #endif
@@ -1259,4 +942,3 @@ module_exit(k3dh_exit);
 
 MODULE_DESCRIPTION("k3dh accelerometer driver");
 MODULE_AUTHOR("STMicroelectronics");
-MODULE_LICENSE("GPL");
