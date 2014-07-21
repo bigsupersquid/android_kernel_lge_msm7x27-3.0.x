@@ -83,7 +83,14 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 		count = MSM_MAX_PARTITIONS;
 
 	for (n = 0; n < count; n++) {
-		memcpy(name, entry->name, 15);
+		/* HACK: swap /system and /userdata partitions */
+		if (strncmp(entry->name, "userdata", 8) == 0) {
+			memcpy(name, "system", 15);
+		} else if (strncmp(entry->name, "system", 6) == 0) {
+			memcpy(name, "userdata", 15);
+		} else {
+			memcpy(name, entry->name, 15);
+		}
 		name[15] = 0;
 
 		ptn->name = name;
