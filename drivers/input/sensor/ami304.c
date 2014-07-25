@@ -88,10 +88,13 @@ static int ami304_suspend(struct device *device);
 static int ami304_resume(struct device *device);
 #endif
 
-#if 0 /* not used */
+//#if 0 /* not used */
 /* Addresses to scan */
 static unsigned short normal_i2c[] = { AMI304_I2C_ADDRESS, I2C_CLIENT_END };
-#endif
+
+/* Insmod parameters */
+I2C_CLIENT_INSMOD;
+//#endif
 
 struct _ami304_data {
 	rwlock_t lock;
@@ -195,9 +198,9 @@ static int AMI304_Chipset_Init(int mode, int chipset)
 	i2c_master_send(ami304_i2c_client, &regaddr, 1);
 	i2c_master_recv(ami304_i2c_client, &ctrl3, 1);		
 
-//	regaddr = AMI304_REG_CTRL4; //2 bytes
-//	i2c_master_send(ami304_i2c_client, &regaddr, 1);
-//	i2c_master_recv(ami304_i2c_client, &(ctrl4[0]), 2);
+	regaddr = AMI304_REG_CTRL4; //2 bytes
+	i2c_master_send(ami304_i2c_client, &regaddr, 1);
+	i2c_master_recv(ami304_i2c_client, &(ctrl4[0]), 2);
 	
 	databuf[0] = AMI304_REG_CTRL1;
 	if( mode == AMI304_FORCE_MODE ) {
@@ -232,7 +235,7 @@ static int AMI304_Chipset_Init(int mode, int chipset)
 
 #else	//AMI306	//AMI306_CHIPSET
 
-//		ctrl4[1]   = ctrl4[1] | AMI306_CTRL4_HIGHSPEED_MODE; //0x5D
+		ctrl4[1]   = ctrl4[1] | AMI306_CTRL4_HIGHSPEED_MODE; //0x5D
 		ctrl4[0] = 0x7e;
 		ctrl4[1] = 0xa0;
 #endif
