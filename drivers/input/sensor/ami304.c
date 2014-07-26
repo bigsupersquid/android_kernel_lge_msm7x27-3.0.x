@@ -88,13 +88,11 @@ static int ami304_suspend(struct device *device);
 static int ami304_resume(struct device *device);
 #endif
 
-//#if 0 /* not used */
 /* Addresses to scan */
 static unsigned short normal_i2c[] = { AMI304_I2C_ADDRESS, I2C_CLIENT_END };
 
 /* Insmod parameters */
 I2C_CLIENT_INSMOD;
-//#endif
 
 struct _ami304_data {
 	rwlock_t lock;
@@ -225,21 +223,13 @@ static int AMI304_Chipset_Init(int mode, int chipset)
 	databuf[1] = ctrl3 | AMI304_CTRL3_B0_LO_CLR;
 	i2c_master_send(ami304_i2c_client, databuf, 2);
 	
-	databuf[0] = AMI304_REG_CTRL4;
-	
-#if 0	// //AMI304  //AMI304_CHIPSET
-
-//		ctrl4[1]   = ctrl4[1] & AMI304_CTRL4_COMPASS_MODE; 	 //0x5D
-		ctrl4[0] = 0x00;
-		ctrl4[1] = 0x00;
-
-#else	//AMI306	//AMI306_CHIPSET
-
-		ctrl4[1]   = ctrl4[1] | AMI306_CTRL4_HIGHSPEED_MODE; //0x5D
-		ctrl4[0] = 0x7e;
-		ctrl4[1] = 0xa0;
-#endif
-
+	databuf[0] = AMI304_REG_CTRL4;	
+	if( chipset == AMI304_CHIPSET ) { //AMI304
+		ctrl4[1]   = ctrl4[1] & AMI304_CTRL4_COMPASS_MODE; 	 //0x5D
+	}
+	else {	//AMI306
+		ctrl4[1]   = ctrl4[1] | AMI306_CTRL4_HIGHSPEED_MODE; //0x5D		
+	}	
 	databuf[1] = ctrl4[0];
 	databuf[2] = ctrl4[1];
 	i2c_master_send(ami304_i2c_client, databuf, 3);
@@ -286,8 +276,6 @@ static int AMI304_ReadChipInfo(char *buf, int bufsize)
 static int AMI304_WIA(char *wia, int bufsize)
 {
 	char cmd;
-	int check[2];
-	int again_cnt = 0;
 	unsigned char databuf[10];
 
 	if ((!wia)||(bufsize<=30))
@@ -299,16 +287,9 @@ static int AMI304_WIA(char *wia, int bufsize)
 	}
 
 	cmd = AMI304_REG_WIA;
-	again_cnt = 3;
-again_i2c:
-	check[0] = i2c_master_send(ami304_i2c_client, &cmd, 1);
-	check[1] = i2c_master_recv(ami304_i2c_client, &(databuf[0]), 1);
-
-	if(((check[0] <= 0) || (check[1] <= 0)) && (again_cnt > 0))
-	{
-		again_cnt--;
-		goto again_i2c;
-	}
+	i2c_master_send(ami304_i2c_client, &cmd, 1);	
+	udelay(20);
+	i2c_master_recv(ami304_i2c_client, &(databuf[0]), 1);	
 	
 	sprintf(wia, "%02x", databuf[0]);
 	
@@ -367,7 +348,7 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 	res = i2c_master_send(ami304_i2c_client, &cmd, 1);	
 	if (res <= 0) 
 		goto exit_AMI304_ReadSensorData;
-//	udelay(20);
+	udelay(20);
 	res = i2c_master_recv(ami304_i2c_client, &(databuf[0]), 6);
 	if (res <= 0) 
 		goto exit_AMI304_ReadSensorData;
@@ -469,9 +450,16 @@ static int AMI304_ReadMiddleControl(char *buf, int bufsize)
 
 	read_lock(&ami304mid_data.ctrllock);
 	sprintf(buf, "%d %d %d %d %d %d %d %d %d %d",
-		ami304mid_data.controldata[AMI304_CB_LOOPDELAY], ami304mid_data.controldata[AMI304_CB_RUN], ami304mid_data.controldata[AMI304_CB_ACCCALI], ami304mid_data.controldata[AMI304_CB_MAGCALI],
-		ami304mid_data.controldata[AMI304_CB_ACTIVESENSORS], ami304mid_data.controldata[AMI304_CB_PD_RESET], ami304mid_data.controldata[AMI304_CB_PD_EN_PARAM], ami304mid_data.controldata[AMI304_CB_QWERTY],
-		ami304mid_data.controldata[AMI304_CB_CHANGE_WINDOW], ami304mid_data.controldata[AMI304_CB_UNDEFINE_2] );
+			ami304mid_data.controldata[AMI304_CB_LOOPDELAY],
+			ami304mid_data.controldata[AMI304_CB_RUN],
+			ami304mid_data.controldata[AMI304_CB_ACCCALI],
+			ami304mid_data.controldata[AMI304_CB_MAGCALI],
+			ami304mid_data.controldata[AMI304_CB_ACTIVESENSORS],
+			ami304mid_data.controldata[AMI304_CB_PD_RESET],
+			ami304mid_data.controldata[AMI304_CB_PD_EN_PARAM],
+			ami304mid_data.controldata[AMI304_CB_UNDEFINE_1],
+			ami304mid_data.controldata[AMI304_CB_UNDEFINE_2],
+			ami304mid_data.controldata[AMI304_CB_UNDEFINE_3] );
 	read_unlock(&ami304mid_data.ctrllock);
 	return 0;
 }
@@ -596,31 +584,10 @@ static ssize_t show_mode_value(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	int mode=0;
-	u8 regaddr;
-	u8 ctrl1, ctrl2, ctrl3;
-	unsigned char ctrl4[2];
-	
 	read_lock(&ami304_data.lock);
 	mode = ami304_data.mode;
 	read_unlock(&ami304_data.lock);
-	
-	regaddr = AMI304_REG_CTRL1;
-	i2c_master_send(ami304_i2c_client, &regaddr, 1);
-	i2c_master_recv(ami304_i2c_client, &ctrl1, 1);
-
-	regaddr = AMI304_REG_CTRL2;
-	i2c_master_send(ami304_i2c_client, &regaddr, 1);
-	i2c_master_recv(ami304_i2c_client, &ctrl2, 1);
-	
-	regaddr = AMI304_REG_CTRL3;
-	i2c_master_send(ami304_i2c_client, &regaddr, 1);
-	i2c_master_recv(ami304_i2c_client, &ctrl3, 1);
-
-	regaddr = AMI304_REG_CTRL4;
-	i2c_master_send(ami304_i2c_client, &regaddr, 1);
-	i2c_master_recv(ami304_i2c_client, ctrl4, 2);	
-	
-	return sprintf(buf, "%d, %d/%d/%d/%d/%d \n", mode, ctrl1, ctrl2, ctrl3, ctrl4[0], ctrl4[1]);
+	return sprintf(buf, "%d\n", mode);
 }
 
 static ssize_t store_mode_value(struct device *dev, 
@@ -729,7 +696,7 @@ static int ami304_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long ami304_ioctl(struct file *file, unsigned int cmd,unsigned long arg)
+static int ami304_ioctl(struct file *file, unsigned int cmd,unsigned long arg)
 {
 	char strbuf[AMI304_BUFSIZE];
 	int controlbuf[AMI304_CB_LENGTH];
@@ -739,7 +706,7 @@ static long ami304_ioctl(struct file *file, unsigned int cmd,unsigned long arg)
 	long pedodata[3];	
 	int pedoparam[AMI304_PD_LENGTH];
 	void __user *data;
-	long retval=0;
+	int retval=0;
 	int mode=0,chipset=0;
 	int iEnReport;
 
@@ -999,7 +966,7 @@ static int ami304daemon_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long ami304daemon_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static int ami304daemon_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int valuebuf[4];
 	int calidata[7];
@@ -1010,7 +977,7 @@ static long ami304daemon_ioctl(struct file *file, unsigned int cmd, unsigned lon
 	int pedoparam[AMI304_PD_LENGTH];	
 	char i2creaddata[3];
 	void __user *data;
-	long retval=0;
+	int retval=0;
 	int mode;
 #if !defined(CONFIG_HAS_EARLYSUSPEND)
 	int iEnReport;
@@ -1253,13 +1220,13 @@ static int ami304hal_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long ami304hal_ioctl(struct file *file, unsigned int cmd,unsigned long arg)
+static int ami304hal_ioctl(struct file *file, unsigned int cmd,unsigned long arg)
 {
 	int controlbuf[AMI304_CB_LENGTH];
 	char strbuf[AMI304_BUFSIZE];
 	int pedoparam[AMI304_PD_LENGTH];		
 	void __user *data;
-	long retval=0;
+	int retval=0;
 	switch (cmd) {
 		case AMI304HAL_IOCTL_GET_SENSORDATA:
 			data = (void __user *) arg;
@@ -1522,7 +1489,6 @@ static int __devinit ami304_probe(struct i2c_client *client,
 	ecom_pdata = ami304_i2c_client->dev.platform_data;
 	ecom_pdata->power(1);
 
-	mdelay(1);
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 	ami304_sensor_early_suspend.suspend = ami304_early_suspend;
 	ami304_sensor_early_suspend.resume = ami304_late_resume;
@@ -1706,8 +1672,6 @@ static int __init ami304_init(void)
 	ami304mid_data.controldata[AMI304_CB_ACTIVESENSORS] = 0;   // Active Sensors
 	ami304mid_data.controldata[AMI304_CB_PD_RESET] = 0;    // Pedometer not reset    
 	ami304mid_data.controldata[AMI304_CB_PD_EN_PARAM] = 0; // Disable parameters of Pedometer
-	ami304mid_data.controldata[AMI304_CB_QWERTY] =   0;   // Qwerty Keyboard : close -> 0, open -> 1.
-	ami304mid_data.controldata[AMI304_CB_CHANGE_WINDOW] =   0;   //ADC_WINDOW_CONTROL: ADC_WINDOW_NORMAL->0 ADC_WINDOW_CHANGED->1 ADC_WINDOW_EXCEEDED->2
 	memset(&ami304mid_data.pedometerparam[0], 0, sizeof(int)*AMI304_PD_LENGTH);	
 	atomic_set(&dev_open_count, 0);
 	atomic_set(&hal_open_count, 0);
