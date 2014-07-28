@@ -23,7 +23,7 @@
 #include <linux/ioctl.h>
 
 //new Addr=0x0E(Low), old Addr=0x0F(High)
-#define AMI304_I2C_ADDRESS 			0x0E  
+#define AMI304_I2C_ADDRESS 			0x0E
 
 /* AMI304 Internal Register Address  (Please refer to AMI304 Specifications) */
 #define AMI304_REG_CTRL1			0x1B
@@ -121,9 +121,9 @@
 #define AMI304_CB_ACTIVESENSORS		 4
 #define AMI304_CB_PD_RESET			 5
 #define AMI304_CB_PD_EN_PARAM		 6
-#define AMI304_CB_UNDEFINE_1		 7
-#define AMI304_CB_UNDEFINE_2		 8
-#define AMI304_CB_UNDEFINE_3		 9
+#define AMI304_CB_QWERTY		 	7
+#define AMI304_CB_CHANGE_WINDOW		 8
+#define AMI304_CB_UNDEFINE_2		 9
 
 /* Pedometer Parameters */
 #define AMI304_PD_LENGTH			10
