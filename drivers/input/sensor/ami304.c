@@ -369,11 +369,7 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 	if (res <= 0) 
 		goto exit_AMI304_ReadSensorData;
 
-	sprintf(buf, "%02x %02x %02x %02x %02x %02x", 
-			databuf[0], databuf[1], databuf[2], 
-			databuf[3], databuf[4], databuf[5]);
-
-	if (AMI304_DEBUG_DEV_STATUS & ami304_debug_mask) {
+	if (1) { //(AMI304_DEBUG_DEV_STATUS & ami304_debug_mask) {
 		int mx, my, mz;
 		mx = my = mz = 0;
 
@@ -384,8 +380,20 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 		if (mx>32768)  mx = mx-65536;
 		if (my>32768)  my = my-65536;
 		if (mz>32768)  mz = mz-65536;
-
+		mx=-mx;
+		my=-my;
 		AMID("Magnetic Raw Data: X=%d, Y=%d, Z=%d\n", mx, my, mz);
+		if (mx<0) mx=mx+65536;
+		if (my<0) my=my+65536;
+		databuf[0]=(mx&255);
+		databuf[1]=(mx>>8);
+		databuf[2]=(my&255);
+		databuf[3]=(my>>8);
+
+	sprintf(buf, "%02x %02x %02x %02x %02x %02x", 
+			(databuf[0]), (databuf[1]), (databuf[2]), 
+			(databuf[3]), (databuf[4]), (databuf[5]));
+
 	}
 
 exit_AMI304_ReadSensorData:
