@@ -369,20 +369,15 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 	if (res <= 0) 
 		goto exit_AMI304_ReadSensorData;
 
-	if (1) { //(AMI304_DEBUG_DEV_STATUS & ami304_debug_mask) {
-		int mx, my, mz;
-		mx = my = mz = 0;
-
+// invert mx and my for thunderc to use better resolving thunderg ami304d blob
+		int mx, my;
+		mx = my = 0;
 		mx = (int)(databuf[0] | (databuf[1] << 8));
 		my = (int)(databuf[2] | (databuf[3] << 8));
-		mz = (int)(databuf[4] | (databuf[5] << 8));
-
 		if (mx>32768)  mx = mx-65536;
 		if (my>32768)  my = my-65536;
-		if (mz>32768)  mz = mz-65536;
 		mx=-mx;
 		my=-my;
-		AMID("Magnetic Raw Data: X=%d, Y=%d, Z=%d\n", mx, my, mz);
 		if (mx<0) mx=mx+65536;
 		if (my<0) my=my+65536;
 		databuf[0]=(mx&255);
@@ -394,6 +389,19 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 			(databuf[0]), (databuf[1]), (databuf[2]), 
 			(databuf[3]), (databuf[4]), (databuf[5]));
 
+	if (AMI304_DEBUG_DEV_STATUS & ami304_debug_mask) {
+		int mx, my, mz;
+		mx = my = mz = 0;
+
+		mx = (int)(databuf[0] | (databuf[1] << 8));
+		my = (int)(databuf[2] | (databuf[3] << 8));
+		mz = (int)(databuf[4] | (databuf[5] << 8));
+
+		if (mx>32768)  mx = mx-65536;
+		if (my>32768)  my = my-65536;
+		if (mz>32768)  mz = mz-65536;
+
+		AMID("Magnetic Raw Data: X=%d, Y=%d, Z=%d\n", mx, my, mz);
 	}
 
 exit_AMI304_ReadSensorData:
