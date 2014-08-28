@@ -33,7 +33,7 @@
 #define INTMSK		LCD_CONTROL_BLOCK_BASE|(0x1c)
 #define VPOS		LCD_CONTROL_BLOCK_BASE|(0xc0)
 
-#if 0
+#ifdef CONFIG_LGE_VSYNC_ENABLED
 static uint32 mddi_hitachi_curr_vpos;
 static boolean mddi_hitachi_monitor_refresh_value = FALSE;
 static boolean mddi_hitachi_report_refresh_measurements = FALSE;
@@ -47,6 +47,9 @@ static boolean is_lcd_on = -1;
  * XXX: TODO: change this values for INNOTEK PANEL */
 static uint32 mddi_hitachi_rows_per_second = 31250;
 static uint32 mddi_hitachi_rows_per_refresh = 480;
+#if 0
+static uint32 mddi_hitachi_usecs_per_refresh = 15360; /* rows_per_refresh / rows_per_second */
+#endif
 extern boolean mddi_vsync_detect_enabled;
 
 static msm_fb_vsync_handler_type mddi_hitachi_vsync_handler = NULL;
@@ -445,7 +448,7 @@ static void mddi_hitachi_vsync_set_handler(msm_fb_vsync_handler_type handler,	/*
  */
 static void mddi_hitachi_lcd_vsync_detected(boolean detected)
 {
-#if 0
+#ifdef CONFIG_LGE_VSYNC_ENABLED
 	/* static timetick_type start_time = 0; */
 	static struct timeval start_time;
 	static boolean first_time = TRUE;
@@ -462,7 +465,7 @@ static void mddi_hitachi_lcd_vsync_detected(boolean detected)
   */
 //	mddi_queue_register_write_int(0x2C, 0);
 
-#if 0 /* Block temporaly till vsync implement */
+#ifdef CONFIG_LGE_VSYNC_ENABLED
 	if ((detected) || (mddi_hitachi_vsync_attempts > 5)) {
 		if ((detected) || (mddi_hitachi_monitor_refresh_value)) {
 			/* if (start_time != 0) */
@@ -746,7 +749,12 @@ static int mddi_hitachi_lcd_init(void)
 		pinfo->bpp = 16;
 	
 		// vsync config
+#ifdef CONFIG_LGE_VSYNC_ENABLED
+		pinfo->lcd.vsync_enable = TRUE;
+#elif !defined(CONFIG_LGE_VSYNC_ENABLED)
 		pinfo->lcd.vsync_enable = FALSE;
+#endif
+		
 
 //        pinfo.mddi.is_type1 = FALSE;
 
@@ -762,7 +770,11 @@ static int mddi_hitachi_lcd_init(void)
 		pinfo->lcd.v_front_porch = 6;
 		pinfo->lcd.v_pulse_width = 4;
 
+#ifdef CONFIG_LGE_VSYNC_ENABLED
+		pinfo->lcd.hw_vsync_mode = TRUE;
+#elif !defined(CONFIG_LGE_VSYNC_ENABLED)
 		pinfo->lcd.hw_vsync_mode = FALSE;
+#endif
 		pinfo->lcd.vsync_notifier_period = (1 * HZ);
 
 		pinfo->bl_max = 4;

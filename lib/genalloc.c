@@ -77,11 +77,9 @@ int __must_check gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, ph
 		 size_t size, int nid)
 {
 	struct gen_pool_chunk *chunk;
-	size_t nbytes;
-
-	if (WARN_ON(!virt || virt + size < virt ||
-	    (virt & ((1 << pool->order) - 1))))
-		return -EINVAL;
+	int nbits = size >> pool->order;
+	int nbytes = sizeof(struct gen_pool_chunk) +
+				BITS_TO_LONGS(nbits) * sizeof(long);
 
 	size = size >> pool->order;
 	if (WARN_ON(!size))
