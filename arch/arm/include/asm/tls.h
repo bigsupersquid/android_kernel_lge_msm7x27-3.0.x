@@ -13,6 +13,7 @@
 	mov	\tmp1, #0xffff0fff
 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
 #endif
+
 	.endm
 
 	.macro set_tls_v6, tp, tmp1, tmp2
