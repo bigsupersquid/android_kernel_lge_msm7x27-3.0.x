@@ -39,12 +39,34 @@
 #include <asm/mach-types.h>
 
 #include <mach/board.h>
+/*LGSI_CHANGE_S <pranav.s@lge.com>:TA charging current for sprint changed to 700mA */ 
+#ifdef CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+#include <mach/board_lge.h>
+#endif
+/*LGSI_CHANGE_E <pranav.s@lge.com>:TA charging current for sprint changed to 700mA */ 
+
 #include <mach/msm_hsusb.h>
 #include <linux/device.h>
 #include <mach/msm_hsusb_hw.h>
 #include <mach/clk.h>
+#ifdef CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+#include <mach/rpc_hsusb.h>
+#endif
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif 
+
+#ifdef CONFIG_USB_SUPPORT_LGE_ANDROID_GADGET
+/* LGE_CHANGE
+ * Add Header for LGE USB
+ * 2011-01-14, hyunhui.park@lge.com
+ */
+#include "u_lgeusb.h"
+
+static int lgeusb_cable_type = -1;
+#endif
 
 static const char driver_name[] = "msm72k_udc";
 
@@ -319,9 +341,29 @@ static int usb_get_max_power(struct usb_info *ui)
 	if (temp == USB_CHG_TYPE__INVALID)
 		return -ENODEV;
 
-	if (temp == USB_CHG_TYPE__WALLCHARGER)
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if ((temp == USB_CHG_TYPE__WALLCHARGER) || (force_fast_charge == 1)) {
+#else
+	if (temp == USB_CHG_TYPE__WALLCHARGER){
+#endif 
+	   /*LGSI_CHANGE_S	<pranav.s@lge.com>:TA charging current for sprint changed to 700mA */ 
+	    #ifdef CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+	    return LS670_TA_CHG_CURRENT;
+		#else
 		return USB_WALLCHARGER_CHG_CURRENT;
-
+		#endif
+	   /*LGSI_CHANGE_E	<pranav.s@lge.com>:TA charging current for sprint changed to 700mA */ 
+       }
+	  	if (suspended || !configured)
+// LGE_CHANGE [dojip.kim@lge.com] 2010-07-17, merged from VS740
+// LGE_CHANGE wppnghee.park : to charge phone 
+// when usb cable is connected but not configured.
+// charging current will be changed to 400mA at ARM9 side.
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC_SPRINT)
+		return 10;
+#else
+		return 0;
+#endif 
 	if (suspended || !configured)
 		return 0;
 
@@ -427,6 +469,18 @@ static void usb_chg_detect(struct work_struct *w)
 
 	temp = usb_get_chg_type(ui);
 	spin_unlock_irqrestore(&ui->lock, flags);
+#ifdef CONFIG_USB_SUPPORT_LGE_GADGET_GSM
+	/* LGE_CHANGE
+	 * Detect TA from CP:
+	 * As charger detection RPC is used, it must not be in spin lock area.
+	 * 2011-01-14, hyunhui.park@lge.com
+	 */
+	if (msm_hsusb_detect_chg_type() == USB_CHG_TYPE__WALLCHARGER) {
+		spin_lock_irqsave(&ui->lock, flags);
+		temp = USB_CHG_TYPE__WALLCHARGER;
+		spin_unlock_irqrestore(&ui->lock, flags);
+	}
+#endif
 
 	atomic_set(&otg->chg_type, temp);
 	maxpower = usb_get_max_power(ui);

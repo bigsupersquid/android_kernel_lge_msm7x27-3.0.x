@@ -59,6 +59,9 @@ static msm_fb_vsync_handler_type mddi_novatek_vsync_handler = NULL;
 static void *mddi_novatek_vsync_handler_arg;
 static uint16 mddi_novatek_vsync_attempts;
 
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+extern int lge_lcd_probe;
+#endif
 #if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_THUNDERC) || defined(CONFIG_MACH_MSM7X27_THUNDERA)
 /* LGE_CHANGE [dojip.kim@lge.com] 2010-05-11, from mddi_hitachi_hvga.c */
 /* LGE_CHANGE
@@ -508,7 +511,7 @@ static void mddi_novatek_lcd_vsync_detected(boolean detected)
 static int mddi_novatek_lcd_on(struct platform_device *pdev)
 {
 	EPRINTK("%s: started.\n", __func__);
-
+	mddi_host_client_cnt_reset();
 #ifndef BOGUS
 	/* LGE_CHANGE_S, [munyoung@lge.com] workaround blink issue when first call of lcd_on */
 	if(is_lcd_on == -1) {
@@ -596,10 +599,16 @@ int mddi_novatek_position(void)
 }
 EXPORT_SYMBOL(mddi_novatek_position);
 #endif
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+//LGSI_LS670_FroyoToGB_CTS Issue Merges_Suresh_28May2011
+DEVICE_ATTR(lcd_onoff_novatek, 0665, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
+#else
 //LGSI_P505_US_ATnT_UI_08092011_Deepthi_Start CTS FilePermission Issue
 //DEVICE_ATTR(lcd_onoff_novatek, 0666, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
 DEVICE_ATTR(lcd_onoff_novatek, 0644, mddi_novatek_lcd_show_onoff, mddi_novatek_lcd_store_onoff);
 //LGSI_P505_US_ATnT_UI_08092011_Deepthi_End CTS FilePermission Issue
+#endif
+
 struct msm_fb_panel_data novatek_panel_data0 = {
 	.on = mddi_novatek_lcd_on,
 	.off = mddi_novatek_lcd_off,
@@ -675,6 +684,21 @@ extern int lge_lcd_panel;
 		}
 	}
 #endif /*CONFIG_FB_MSM_MDDI_AUTO_DETECT*/
+/* LGE_CHANGE [james.jang@lge.com] 2010-08-28, probe LCD */
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_input(101);
+		lge_lcd_probe = gpio_get_value(101);
+		gpio_free(101);
+	}
+	else 
+		printk(KERN_INFO "GPIO 101 allocation failure.\n");
+	if (gpio_get_value(101) != 1)
+		return -ENODEV;
+
+#endif
 
 	ret = platform_driver_register(&this_driver);
 	if (!ret) {
