@@ -4227,9 +4227,9 @@ need_resched:
 	rq = cpu_rq(cpu);
 	rcu_note_context_switch(cpu);
 	prev = rq->curr;
-
+#if !defined(CONFIG_THUNDERC_FBCONSOLE)
 	schedule_debug(prev);
-
+#endif
 	if (sched_feat(HRTICK))
 		hrtick_clear(rq);
 

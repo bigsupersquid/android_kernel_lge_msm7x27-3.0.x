@@ -49,7 +49,16 @@
 /* 18.0, 18.9, 19.8, 20.7, 21.6, 22.5, 23.4, 24.3, 25.2, 26.1, */
 /* 27.0, 27.9 */
 
+#if 0 //defined(CONFIG_MACH_MSM7X27_THUNDERC)
+/* LGE_CHANGE,
+  * Change the maximum brightness to reduce current consumption at MR version.
+  * Before : 21 step(20.32mA), After : 16 step(15.48mA)
+  * 2010.10.06, minjong.gong@lge.com
+  */
+#define LCD_LED_MAX 17 /* 16.45mA */
+#else
 #define LCD_LED_MAX 21 /* 20.32mA */
+#endif
 #define LCD_LED_MIN 0  /* 0.48mA */
 #define DEFAULT_BRIGHTNESS 13
 #define AAT28XX_LDO_NUM 4
@@ -155,9 +164,19 @@ module_param(debug, uint, 0644);
 
 /* Set to Normal mode */
 static struct aat28xx_ctrl_tbl aat2862bl_normal_tbl[] = {
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+	/* LGE_CHANGE. 
+	 * Change register value to do not turn on the bakclight at operatoin mode setting. (0xF2 -> 0xD2)
+	 * 2010-07-31. minjong.gong@lge.com 
+	 */
+//LG_CHANGE [panchaxari.t@lge.com] 2011-10-12 , LCD brightness [START]	 
+	{ 0x03, 0xF2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),  Brightness=Default (0x12, 13th setp)*/
+//LG_CHANGE [panchaxari.t@lge.com] 2011-10-12 , LCD brightness [START]	
+#else
 /* LGE_UPDATE_S kideok.kim@lge.com 20101020*/
 	 { 0x03, 0xD2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),	Brightness=Default (0x12, 13th setp)*/
 //	 { 0x03, 0xF2 },  /* MEQS(7)=high, DISABLE FADE_MAIN(6)=high(disabled), LCD_ON(5)=high(On),	Brightness=Default (0x12, 13th setp)*/
+#endif
 	{ 0xFF, 0xFE }	 /* end of command */
 };
 
@@ -420,7 +439,7 @@ EXPORT_SYMBOL(aat28xx_ldo_set_level);
 
 static void aat28xx_power_internal(struct aat28xx_driver_data *drvdata, int on)
 {
-#if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_ALESSI)
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC) || defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_ALESSI)
 	mdelay(20);
 	return;
 #endif
@@ -566,11 +585,15 @@ static void aat28xx_poweroff(struct aat28xx_driver_data *drvdata)
 		drvdata->state = POWEROFF_STATE;
 		return;
 	}
-
-	gpio_tlmm_config(GPIO_CFG(drvdata->gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	gpio_direction_output(drvdata->gpio, 0);
-	mdelay(6);
-	drvdata->state = POWEROFF_STATE;
+	if ((gpio_request(drvdata->gpio, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(drvdata->gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_output(drvdata->gpio, 0);
+		mdelay(6);
+		drvdata->state = POWEROFF_STATE;
+		gpio_free(drvdata->gpio);
+	}
+	printk("gpio_request(drvdata->gpio, NULL) failed.\n");
 }
 #endif
 

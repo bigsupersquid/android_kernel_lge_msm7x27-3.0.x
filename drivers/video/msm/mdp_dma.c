@@ -32,6 +32,11 @@
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mddihost.h"
+#if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+#include <asm/gpio.h>
+extern int lge_lcd_probe;
+#endif
+
 
 static uint32 mdp_last_dma2_update_width;
 static uint32 mdp_last_dma2_update_height;
@@ -291,13 +296,33 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 #if defined(CONFIG_FB_MSM_MDDI_NOVATEK_HVGA) && defined(BLAME_RASHED)
 		MDP_OUTP(MDP_BASE + 0x00094,
 			(0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
+#elif defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
+	if (gpio_request(101, NULL)==0)
+	{
+		gpio_tlmm_config(GPIO_CFG(101, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_direction_input(101);
+		lge_lcd_probe = gpio_get_value(101);
+		gpio_free(101);
+	}
+	else 
+		printk(KERN_INFO "GPIO 101 allocation failure.\n");
+
+	if(lge_lcd_probe == 1){
+		MDP_OUTP(MDP_BASE + 0x00094, (0x5565 /*MDDI_VDO_PACKET_DESC*/ << 16) | mddi_vdo_packet_reg);
+			 }
+	else{
+		MDP_OUTP(MDP_BASE + 0x00094,(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
+	/* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
+	}
 #else /* original */
 		MDP_OUTP(MDP_BASE + 0x00094,
 /* Don't apply 6013 patch only when using Hitachi HVGA module. 2010-07-28. minjong.gong@lge.com */
 #if defined (CONFIG_FB_MSM_MDDI_HITACHI_HVGA) || defined(CONFIG_FB_MSM_MDDI_SHARP_HVGA_E720)
 			(MDDI_VDO_PACKET_DESC << 16) | mddi_vdo_packet_reg);
 #else
+#if !defined(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 			(mddi_pkt_desc << 16) | mddi_vdo_packet_reg);
+#endif //(CONFIG_FB_MSM_MDDI_NOVATEK_HITACHI_HVGA)
 #endif
 #endif
 
@@ -634,6 +659,12 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 
 	iBuf->vsync_enable = sync;
 
+#if defined(CONFIG_THUNDERC_FBCONSOLE)
+    iBuf->dma_x = 0;
+    iBuf->dma_y = 0;
+    iBuf->dma_w = info->var.xres;
+    iBuf->dma_h = info->var.yres;
+#else
 	if (dirty) {
 		/*
 		 * ToDo: dirty region check inside var.xoffset+xres
@@ -649,6 +680,7 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 		iBuf->dma_w = info->var.xres;
 		iBuf->dma_h = info->var.yres;
 	}
+#endif
 	mfd->ibuf_flushed = FALSE;
 	up(&mfd->sem);
 }

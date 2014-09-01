@@ -1834,14 +1834,20 @@ static int fbcon_scroll(struct vc_data *vc, int t, int b, int dir,
 	 *           whole screen (prevents flicker).
 	 */
 
+#if defined(CONFIG_THUNDERC_FBCONSOLE)
+    info->flags |= FBINFO_READS_FAST;
+    p->scrollmode = SCROLL_PAN_MOVE;
+#endif
 	switch (dir) {
 	case SM_UP:
 		if (count > vc->vc_rows)	/* Maximum realistic size */
 			count = vc->vc_rows;
 		if (softback_top)
 			fbcon_softback_note(vc, t, count);
+#if !defined(CONFIG_THUNDERC_FBCONSOLE)
 		if (logo_shown >= 0)
 			goto redraw_up;
+#endif
 		switch (p->scrollmode) {
 		case SCROLL_MOVE:
 			fbcon_redraw_blit(vc, info, p, t, b - t - count,
@@ -1931,8 +1937,10 @@ static int fbcon_scroll(struct vc_data *vc, int t, int b, int dir,
 	case SM_DOWN:
 		if (count > vc->vc_rows)	/* Maximum realistic size */
 			count = vc->vc_rows;
+#if defined(CONFIG_THUNDERC_FBCONSOLE)
 		if (logo_shown >= 0)
 			goto redraw_down;
+#endif
 		switch (p->scrollmode) {
 		case SCROLL_MOVE:
 			fbcon_redraw_blit(vc, info, p, b - 1, b - t - count,

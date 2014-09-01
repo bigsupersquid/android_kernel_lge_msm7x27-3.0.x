@@ -50,6 +50,7 @@ obj-$(CONFIG_PM8921_BMS)	+= pm8921-bms.o
 obj-$(CONFIG_PM8921_CHARGER)	+= pm8921-charger.o
 obj-$(CONFIG_LTC4088_CHARGER)	+= ltc4088-charger.o
 obj-$(CONFIG_MAX17040_FUEL_GAUGE)	+= max17040.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += msm_battery_thunderc.o
 
 ifeq ($(CONFIG_MACH_MSM7X27_ALOHAV),y)
 	BATT_DRIVER = msm_battery_alohav.o

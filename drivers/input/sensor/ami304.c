@@ -369,6 +369,23 @@ static int AMI304_ReadSensorData(char *buf, int bufsize)
 	if (res <= 0) 
 		goto exit_AMI304_ReadSensorData;
 
+#if defined(CONFIG_MACH_MSM7X27_THUNDERC)
+// invert mx and my for thunderc to use much better behaved thunderg ami304d blob
+		int mx, my;
+		mx = my = 0;
+		mx = (int)(databuf[0] | (databuf[1] << 8));
+		my = (int)(databuf[2] | (databuf[3] << 8));
+		if (mx>32768)  mx = mx-65536;
+		if (my>32768)  my = my-65536;
+		mx=-mx;
+		my=-my;
+		if (mx<0) mx=mx+65536;
+		if (my<0) my=my+65536;
+		databuf[0]=(mx&255);
+		databuf[1]=(mx>>8);
+		databuf[2]=(my&255);
+		databuf[3]=(my>>8);
+#endif
 	sprintf(buf, "%02x %02x %02x %02x %02x %02x", 
 			databuf[0], databuf[1], databuf[2], 
 			databuf[3], databuf[4], databuf[5]);

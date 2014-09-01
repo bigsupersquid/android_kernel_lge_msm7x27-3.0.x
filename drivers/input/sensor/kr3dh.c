@@ -93,7 +93,11 @@ module_param_named(debug_mask, kr3dh_debug_mask, int,
 #define CTRL_REG2		0x21	/* filter setting */
 #define CTRL_REG3		0x22	/* interrupt control reg */
 #define CTRL_REG4		0x23
+#if defined CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+#define CTRL_REG5		0x23 	/* scale selection */
+#else
 #define CTRL_REG5		0x24	/* scale selection */
+#endif
 
 #define PM_OFF          	0x00
 #define PM_NORMAL       	0x20
@@ -420,8 +424,17 @@ static void kr3dh_report_values(struct kr3dh_data *kr, int *xyz)
 
 static int kr3dh_enable(struct kr3dh_data *kr)
 {
+#if defined CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+	int err;
+#endif
 	if (!atomic_cmpxchg(&kr->enabled, 0, 1)) {
-
+#if defined CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+		err = kr3dh_device_power_on(kr);
+		if (err < 0) {
+			atomic_set(&kr->enabled, 0);
+			return err;
+		}
+#endif
 #if USE_WORK_QUEUE
 		schedule_delayed_work(&kr->input_work,
 				      msecs_to_jiffies(kr->
@@ -437,6 +450,9 @@ static int kr3dh_disable(struct kr3dh_data *kr)
 	if (atomic_cmpxchg(&kr->enabled, 1, 0)) {
 #if USE_WORK_QUEUE
 		cancel_delayed_work_sync(&kr->input_work);
+#endif
+#if defined CONFIG_MACH_MSM7X27_THUNDERC_SPRINT
+		kr3dh_device_power_off(kr);
 #endif
 	}
 
