@@ -330,7 +330,9 @@ void __init early_print(const char *str, ...)
 	printk("%s", buf);
 }
 
-//#define DISABLE_HWCAP_TLS
+#if defined (CONFIG_TLS_USERSPACE_EMUL)
+#define DISABLE_HWCAP_TLS
+#endif
 
 static void __init feat_v6_fixup(void)
 {

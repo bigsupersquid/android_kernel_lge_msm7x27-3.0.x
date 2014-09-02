@@ -89,6 +89,30 @@ config MACH_MSM7X27_UNIVA
 
 endmenu
 
+menu "Non-LGE patches"
+config FORCE_FAST_CHARGE
+        bool "Force AC charge mode at will"
+        default y
+        help
+          A simple sysfs interface to force adapters that
+          are detected as USB to charge as AC.
+
+config DISABLE_HARDWARE_TLS
+		bool "Disable hardware TLS register"
+		default n
+		help
+			Leave this unchecked to match post-07122014 androidarmv6 builds.
+			Select for legacy ROM compatibility.
+
+config MTD_SYSTEM_DATA_SWAP_HACK
+	bool "Swap userdata and system at boot for more system space"
+	depends on MTD
+	default y
+	help
+	  Stock setting for androidarmv6-based builds after 07122014 with TLS
+
+endmenu
+
 config LGE_FACTORY
         default n
         bool "LGE factory Configuration"
@@ -412,13 +436,6 @@ config LGE_POWER_ON_STATUS_PATCH
 	 This patch is added to read the power on status from modem and update
 	 the same in apps processor's /proc/sys/kernel/boot_reason file.
 	 Ref: Documentation/arcr/arm/msm/boot.txt
-
-config FORCE_FAST_CHARGE
-        bool "Force AC charge mode at will"
-        default y
-        help
-          A simple sysfs interface to force adapters that
-          are detected as USB to charge as AC.
 
 endmenu
 
