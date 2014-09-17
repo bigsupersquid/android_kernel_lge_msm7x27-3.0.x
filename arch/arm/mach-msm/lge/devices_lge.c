@@ -50,6 +50,10 @@
 #include <asm/processor.h>
 #endif
 
+#ifdef CONFIG_KEXEC_HARDBOOT
+#include <linux/memblock.h>
+#endif
+
 #include <mach/board_lge.h>
 #include "../board-msm7627-regulator.h"
 #include "../devices.h"
@@ -136,8 +140,17 @@ void __init lge_add_ramconsole_devices(void)
 {
 	struct resource *res = ram_console_resource;
 	struct membank *bank = &meminfo.bank[0];
-	res->start = MSM7X27_EBI1_CS0_BASE + bank->size;
-	res->end = res->start + LGE_RAM_CONSOLE_SIZE - 1;
+#ifdef CONFIG_KEXEC_HARDBOOT
+ // Reserve space for hardboot page, just before the ram_console
+ phys_addr_t start = MSM7X27_EBI1_CS0_BASE + bank->size - SZ_1M - LGE_RAM_CONSOLE_SIZE;
+ int ret = memblock_remove(start, SZ_1M);
+ if(!ret)
+ printk("Hardboot page reserved at 0x%X\n", start);
+ else
+ printk("Failed to reserve space for hardboot page at 0x%X!\n", start);
+#endif
+res->start = MSM7X27_EBI1_CS0_BASE + SZ_1M + bank->size;
+	res->end = res->start + SZ_1M + LGE_RAM_CONSOLE_SIZE - 1;
 	printk("RAM CONSOLE START ADDR : %d\n", res->start);
 	printk("RAM CONSOLE END ADDR   : %d\n", res->end);
 	
