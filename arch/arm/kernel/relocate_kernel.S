@@ -8,11 +8,8 @@
 #include <asm/memory.h>
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC) || defined(CONFIG_ARCH_TEGRA_3x_SOC)
   #include <mach/iomap.h>
-#elif defined(CONFIG_ARCH_APQ8064)
+#elif defined(CONFIG_ARCH_APQ8064) || defined(CONFIG_ARCH_MSM)
   #include <mach/msm_iomap.h>
-#elif defined(CONFIG_ARCH_MSM)
-  #include <mach/msm_iomap.h>
-  #define FEMTO_GPIO_PS_HOLD 161
 #endif
 #endif
 
@@ -106,11 +103,16 @@ loop:	b	loop
 	str	r1, [r0, #0x820]  @ PSHOLD_CTL_SU
 loop:	b	loop
 #elif defined(CONFIG_ARCH_MSM)
-	/* Restart using the PMIC chip, see mach-msm/restart-fs9xxx.c */
-	ldr	r0, =FEMTO_GPIO_PS_HOLD
-
-	mov	r1, #0
-	str	r1, [r0, #0x820]  @ PSHOLD_CTL_SU
+	/* Restart using watchdog, see unused mach-msm/restart.c */
+	ldr	r0, =msm_tmr0_base
+	mov r1, #1
+	str r1, [r0, #WDT0_RST]
+	mov r1, #0xF9BF
+	str r1, [r0 , #WDT0_BARK_TIME]
+	mov r1, #0x31F3
+	str r1, [r0 , #WDT0_BITE_TIME]
+	mov r1, #1
+	str r1, [r0 , #WDT0_EN]
 loop:	b	loop
 #else
 #error "No reboot method defined for hardboot."

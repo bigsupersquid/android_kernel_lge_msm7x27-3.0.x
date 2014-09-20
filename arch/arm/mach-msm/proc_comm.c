@@ -100,6 +100,31 @@ again:
 }
 EXPORT_SYMBOL(msm_proc_comm_reset_modem_now);
 
+void msm_proc_comm_reset_now(void)
+{
+	unsigned base = (unsigned)MSM_SHARED_RAM_BASE;
+	unsigned long flags;
+
+	spin_lock_irqsave(&proc_comm_lock, flags);
+
+again:
+	if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
+		goto again;
+
+	writel_relaxed(PCOM_RESET_CHIP_IMM, base + APP_COMMAND);
+	writel_relaxed(0x776655AA, base + APP_DATA1);
+	writel_relaxed(0, base + APP_DATA2);
+
+	spin_unlock_irqrestore(&proc_comm_lock, flags);
+
+	/* Make sure the writes complete before notifying the other side */
+	wmb();
+	notify_other_proc_comm();
+
+	return;
+}
+EXPORT_SYMBOL(msm_proc_comm_reset_now);
+
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 {
 	unsigned base = (unsigned)MSM_SHARED_RAM_BASE;

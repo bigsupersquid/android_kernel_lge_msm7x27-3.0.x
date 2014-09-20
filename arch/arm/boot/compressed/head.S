@@ -16,7 +16,6 @@
 #endif
 
 
-	.arch	armv7-a
 /*
  * Debugging stuff
  *
@@ -187,7 +186,6 @@ start:
  * r8: kexec_boot_atags
  * r2: boot_atags */
 		ldr	r8, [r3, #12]			@ kexec_boot_atags (r2: boot_atags)
-  /* nasty little hack to allow thunderc kexec_hardboot without really patching this file. probably breaks thunderg. */
 		ldr	r4, =0x12208000			@ zreladdr
 
 		/* No need to copy atags if they're already below kernel */
@@ -274,7 +272,7 @@ not_angel:
 
 		.text
 
-#ifdef CONFIG_AUTO_zreladdr
+#ifdef CONFIG_AUTO_ZRELADDR
 		@ determine final kernel image address
 		mov	r4, pc
 		and	r4, r4, #0xf8000000
