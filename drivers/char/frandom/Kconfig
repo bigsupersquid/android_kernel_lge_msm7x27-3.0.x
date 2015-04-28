@@ -1,0 +1,11 @@
+#
+# frandom (RNG) configuration
+#
+
+
+config HW_FRANDOM
+	bool "frandom device"
+	default n
+	---help---
+	frandom: A fast random number generator for Linux.
+

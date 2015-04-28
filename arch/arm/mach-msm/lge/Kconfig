@@ -39,6 +39,36 @@ config MACH_MSM7X27_PECAN
 	help
 	 Support for the LGE MSM7x27 PECAN Global board.
 
+config MACH_MSM7X27_THUNDERC
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	select MACH_LGE
+	bool "MSM7x27 THUNDER CDMA"
+	help
+	  Support for the LGE MSM7x27 THUNDER CDMA board.
+
+choice
+	prompt "MSM7X27 THUNDER CDMA Selection"
+	depends on MACH_MSM7X27_THUNDERC
+	default MACH_MSM7X27_THUNDERC_SPRINT
+
+ 
+config MACH_MSM7X27_THUNDERC_SPRINT
+	bool "MSM7x27 THUNDER CDMA Sprint"
+	select CPU_32v6
+	select CPU_32v6K
+	select CPU_ABRT_EV6
+	select CPU_PABRT_V6
+	select CPU_CACHE_V6
+	select CPU_CACHE_VIPT
+	select CPU_CP15_MMU
+	select CPU_HAS_ASID if MMU
+	select CPU_COPY_V6 if MMU
+	select CPU_TLB_V6 if MMU
+	help
+	  Support for the LGE MSM7x27 THUNDER CDMA Sprint board.
+endchoice
+
 config MACH_MSM7X27_THUNDERG
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -56,6 +86,30 @@ config MACH_MSM7X27_UNIVA
 	bool "MSM7x27 UNIVA Global"
 	help
 	 Support for the LGE MSM7x27 UNIVA Global board.
+
+endmenu
+
+menu "Non-LGE patches"
+config FORCE_FAST_CHARGE
+        bool "Force AC charge mode at will"
+        default y
+        help
+          A simple sysfs interface to force adapters that
+          are detected as USB to charge as AC.
+
+config DISABLE_HARDWARE_TLS
+		bool "Disable hardware TLS register"
+		default n
+		help
+			Leave this unchecked to match post-07122014 androidarmv6 builds.
+			Select for legacy ROM compatibility.
+
+config MTD_SYSTEM_DATA_SWAP_HACK
+	bool "Swap userdata and system at boot for more system space"
+	depends on MTD
+	default y
+	help
+	  Stock setting for androidarmv6-based builds after 07122014 with TLS
 
 endmenu
 
@@ -236,6 +290,13 @@ config LGE_FBCON_INACTIVE_CONSOLE
 	help
 	 Choose if inactive console
 
+config LGE_PCB_VERSION
+	bool "Support LGE PCB Version RAPI"
+	default n 
+	depends on MACH_LGE
+	help
+	  Choose if use PCB Version RAPI
+	  
 config LGE_PWRSINK
 	bool "Support LGE Power Sink Driver"
 	default n
@@ -320,6 +381,28 @@ config LGE_DIAG_WMC
 	depends on LGE_DIAGTEST
 	help
 	  LGE diag WMC enable
+
+# LGE_CHANGE [dojip.kim@lge.com] 2010-08-04
+config LGE_GET_POWER_ON_STATUS
+	bool "LGE Getting Power On Status"
+	select LGE_PROC_COMM 
+	default n
+	help
+	  This patch is added for getting the power on status
+
+# LGE_CHANGE [dojip.kim@lge.com] 2010-08-09
+config LGE_THERM_NO_STOP_CHARGING
+	bool "LGE no stop charging even if hot or cold battery"
+	default n
+	help
+	  This patch is no stop charging even if hot or cold battery only for testing
+
+# LGE_CHANGE [dojip.kim@lge.com] 2010-08-17
+config LGE_RTC_INTF_ALARM_SYNC
+	bool "LGE alarm sync (fix the elapsed time)"
+	default n
+	help
+	  This patch is alarm sync to fix the wrong elapsed time 
 
 config LGE_GRAM_REFRESH_PATCH
 	bool "LGE gram refresh patch"

@@ -33,6 +33,16 @@ obj-$(CONFIG_MACH_MSM7X27_PECAN) += board-pecan-pm.o
 obj-$(CONFIG_MACH_MSM7X27_PECAN) += lge_temp.o # LGE_CHANGE neo.kang@lge.com just for Line PV. It will be removed
 obj-$(CONFIG_MACH_MSM7X27_PECAN) += lge_mtd_direct_access.o # LGE_CHANGE neo.kang@lge.com just for Line PV. It will be removed.
 
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-mmc.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-snd.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-panel.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-bt.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-camera.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-input.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-misc.o
+obj-$(CONFIG_MACH_MSM7X27_THUNDERC) += board-thunderc-pm.o
+
 obj-$(CONFIG_MACH_MSM7X27_THUNDERG) += board-thunderg.o
 obj-$(CONFIG_MACH_MSM7X27_THUNDERG) += board-thunderg-mmc.o
 obj-$(CONFIG_MACH_MSM7X27_THUNDERG) += board-thunderg-snd.o
@@ -96,6 +106,7 @@ obj-$(CONFIG_LGE_ATS_INPUT_DEVICE) += lge_ats_input.o
 obj-$(CONFIG_LGE_SUPPORT_AT_CMD) += lge_ats_flex.o # LGE_CHANGE [irene.park@lge.com] 2010-06-04 - to get flex value from ARM9
 obj-$(CONFIG_LGE_PWRSINK) += lge_pwrsink.o
 #obj-$(CONFIG_LGE_FACTORY_PATCH) += lge_temp.o lge_mtd_direct_access.o
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 
 #from .38
 obj-$(CONFIG_LGE_DIAGTEST) += lg_diag_unifiedmsgtool.o
