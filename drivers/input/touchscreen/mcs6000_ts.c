@@ -175,17 +175,19 @@ void Send_Touch( unsigned int x, unsigned int y)
 	}
 
 #ifdef LG_FW_MULTI_TOUCH
-	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_PRESSURE, 1);
-	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TRACKING_ID, 9);
 	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
 	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_PRESSURE, 1);
 	input_mt_sync(mcs6000_ext_ts->input_dev);
 	input_sync(mcs6000_ext_ts->input_dev);
 
-	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_PRESSURE, 0);
-	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TRACKING_ID, 9);
 	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
 	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+	input_report_abs(mcs6000_ext_ts->input_dev, ABS_MT_PRESSURE, 0);
 	input_mt_sync(mcs6000_ext_ts->input_dev);
 	input_sync(mcs6000_ext_ts->input_dev);
 #else
@@ -254,23 +256,41 @@ static __inline void mcs6000_multi_ts_event_touch(int x1, int y1, int x2, int y2
 		DMSG("\n");
 
 	if ((x1 >= 0) && (y1 >= 0)) {
-		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, value);
+		
+		input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 9); //-(10*value));
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x1);
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y1);
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, value);
+		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, value);
+		input_report_abs(ts->input_dev, ABS_X, x1);
+		input_report_abs(ts->input_dev, ABS_Y, y1);
+		input_report_abs(ts->input_dev, ABS_PRESSURE, value);
+		if (!(ts->pendown)) {
+			input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, -1);
+		}
 		input_mt_sync(ts->input_dev);
 		report = 1;
 	}
 
-	if ((x2 >= 0) && (y2 >= 0)) {
-		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, value);
+	if ((x2 >= 0) && (y2 >= 0)) {		
+/*		input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 9); //-(10*value));
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x2);
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y2);
-		input_mt_sync(ts->input_dev);
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, value);
+		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, value); */
+		if (ts->pendown)
+			input_report_key(ts->input_dev, BTN_TOUCH, PRESSED);
+		else  {
+			input_report_key(ts->input_dev, BTN_TOUCH, RELEASED);
+			input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, -1);
+			input_mt_sync(ts->input_dev);
+		}
 		report = 1;
 	}
 
-	if (report != 0)
+	if (report != 0) {
 		input_sync(ts->input_dev);
+	}
 	else {
 		if (MCS6000_DM_TRACE_YES & mcs6000_debug_mask)
 			DMSG("Not available touch data x1=%d, y1=%d, x2=%d, y2=%d\n", x1, y1, x2, y2);
@@ -1267,9 +1287,9 @@ static int mcs6000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	ts->input_dev->name = MCS6000_I2C_TS_NAME;
 
 	set_bit(EV_SYN, ts->input_dev->evbit);
-#ifdef CONFIG_MACH_MSM7X27_ALESSI
+//#ifdef CONFIG_MACH_MSM7X27_ALESSI
 	set_bit(EV_KEY, ts->input_dev->evbit);
-#endif
+//#endif
 	set_bit(EV_ABS, ts->input_dev->evbit);
 #ifdef LG_FW_MULTI_TOUCH
 	set_bit(ABS_MT_TOUCH_MAJOR, ts->input_dev->absbit);
@@ -1278,7 +1298,7 @@ static int mcs6000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	 */
 	set_bit(ABS_MT_POSITION_X, ts->input_dev->absbit);
 	set_bit(ABS_MT_POSITION_Y, ts->input_dev->absbit);
-#else
+//#else
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 #endif
 #ifdef CONFIG_MACH_MSM7X27_ALESSI
@@ -1295,7 +1315,7 @@ static int mcs6000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 #ifdef LG_FW_MULTI_TOUCH
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, pdata->ts_x_min, pdata->ts_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, pdata->ts_y_min, pdata->ts_y_max, 0, 0);
-#else	
+//#else	
 	input_set_abs_params(ts->input_dev, ABS_X, pdata->ts_x_min, pdata->ts_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_Y, pdata->ts_y_min, pdata->ts_y_max, 0, 0);
 #endif

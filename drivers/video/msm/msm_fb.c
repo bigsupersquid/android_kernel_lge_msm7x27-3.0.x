@@ -52,6 +52,10 @@
 #define MSM_FB_NUM	3
 #endif
 
+#ifdef CONFIG_FB_MSM_SINGLE_BUFFER
+#define MSM_FB_NUM	1
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP40
 /*  Idle wakelock to prevent PC between wake up and Vsync */
 struct wake_lock mdp_idle_wakelock;
@@ -247,6 +251,28 @@ int msm_fb_detect_client(const char *name)
 	return ret;
 }
 
+static int msmfb_refresh_thread(void *v)
+{
+       struct fb_info *info;
+       struct msm_fb_data_type * mfd;
+       
+       
+       daemonize("msmfb_refreshd");
+       allow_signal(SIGKILL);
+       
+       while (1) {
+               msleep(100);
+               
+               if (num_registered_fb > 0) {
+                       info = registered_fb[0];
+                       msm_fb_pan_display(&info->var, info);
+               }
+       }
+       
+       return 0;
+}
+
+
 static ssize_t msm_fb_msm_fb_type(struct device *dev,
 				  struct device_attribute *attr, char *buf)
 {
@@ -390,7 +416,8 @@ static int msm_fb_probe(struct platform_device *pdev)
 	if (err < 0)
 		printk(KERN_ERR "pm_runtime: fail to set active.\n");
 	pm_runtime_enable(mfd->fbi->dev);
-#ifdef CONFIG_FB_BACKLIGHT
+    kernel_thread(msmfb_refresh_thread, NULL, CLONE_KERNEL);
+    #ifdef CONFIG_FB_BACKLIGHT
 	msm_fb_config_backlight(mfd);
 #else
 	/* android supports only one lcd-backlight/lcd for now */

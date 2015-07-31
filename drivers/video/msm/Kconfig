@@ -36,6 +36,10 @@ config FB_MSM_TRIPLE_BUFFER
 	bool "Support for triple frame buffer"
 	default n
 
+config FB_MSM_SINGLE_BUFFER
+	bool "Support for single frame buffer"
+	default n
+
 choice
 	prompt "MDP HW version"
 	default FB_MSM_MDP22
