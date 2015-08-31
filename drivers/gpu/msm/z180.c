@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2007-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2002,2007-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -157,6 +157,13 @@ static struct z180_device device_2d0 = {
 		.active_cnt = 0,
 		.iomemname = KGSL_2D0_REG_MEMORY,
 		.ftbl = &z180_functable,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+		.display_off = {
+			.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING,
+			.suspend = kgsl_early_suspend_driver,
+			.resume = kgsl_late_resume_driver,
+		},
+#endif
 	},
 };
 
@@ -188,6 +195,13 @@ static struct z180_device device_2d1 = {
 		.active_cnt = 0,
 		.iomemname = KGSL_2D1_REG_MEMORY,
 		.ftbl = &z180_functable,
+		.display_off = {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+			.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING,
+			.suspend = kgsl_early_suspend_driver,
+			.resume = kgsl_late_resume_driver,
+#endif
+		},
 	},
 };
 
@@ -289,22 +303,15 @@ error:
 	return result;
 }
 
-static inline unsigned int rb_offset(unsigned int timestamp)
+static inline unsigned int rb_offset(unsigned int index)
 {
-	return (timestamp % Z180_PACKET_COUNT)
-		*sizeof(unsigned int)*(Z180_PACKET_SIZE);
+	return index*sizeof(unsigned int)*(Z180_PACKET_SIZE);
 }
 
-static inline unsigned int rb_gpuaddr(struct z180_device *z180_dev,
-					unsigned int timestamp)
-{
-	return z180_dev->ringbuffer.cmdbufdesc.gpuaddr + rb_offset(timestamp);
-}
-
-static void addmarker(struct z180_ringbuffer *rb, unsigned int timestamp)
+static void addmarker(struct z180_ringbuffer *rb, unsigned int index)
 {
 	char *ptr = (char *)(rb->cmdbufdesc.hostptr);
-	unsigned int *p = (unsigned int *)(ptr + rb_offset(timestamp));
+	unsigned int *p = (unsigned int *)(ptr + rb_offset(index));
 
 	*p++ = Z180_STREAM_PACKET;
 	*p++ = (Z180_MARKER_CMD | 5);
@@ -318,11 +325,11 @@ static void addmarker(struct z180_ringbuffer *rb, unsigned int timestamp)
 	*p++ = ADDR_VGV3_LAST << 24;
 }
 
-static void addcmd(struct z180_ringbuffer *rb, unsigned int timestamp,
+static void addcmd(struct z180_ringbuffer *rb, unsigned int index,
 			unsigned int cmd, unsigned int nextcnt)
 {
 	char * ptr = (char *)(rb->cmdbufdesc.hostptr);
-	unsigned int *p = (unsigned int *)(ptr + (rb_offset(timestamp)
+	unsigned int *p = (unsigned int *)(ptr + (rb_offset(index)
 			   + (Z180_MARKER_SIZE * sizeof(unsigned int))));
 
 	*p++ = Z180_STREAM_PACKET_CALL;
@@ -345,7 +352,7 @@ static void z180_cmdstream_start(struct kgsl_device *device)
 	z180_cmdwindow_write(device, ADDR_VGV3_MODE, 4);
 
 	z180_cmdwindow_write(device, ADDR_VGV3_NEXTADDR,
-			     rb_gpuaddr(z180_dev, z180_dev->current_timestamp));
+			z180_dev->ringbuffer.cmdbufdesc.gpuaddr);
 
 	z180_cmdwindow_write(device, ADDR_VGV3_NEXTCMD, cmd | 5);
 
@@ -396,9 +403,11 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	long result = 0;
 	unsigned int ofs        = PACKETSIZE_STATESTREAM * sizeof(unsigned int);
 	unsigned int cnt        = 5;
-	unsigned int old_timestamp = 0;
+	unsigned int nextaddr   = 0;
+	unsigned int index	= 0;
+	unsigned int nextindex;
 	unsigned int nextcnt    = Z180_STREAM_END_CMD | 5;
-	struct kgsl_mem_entry *entry = NULL;
+	struct kgsl_memdesc tmp = {0};
 	unsigned int cmd;
 	struct kgsl_device *device = dev_priv->device;
 	struct kgsl_pagetable *pagetable = dev_priv->process_priv->pagetable;
@@ -416,30 +425,8 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	}
 	cmd = ibdesc[0].gpuaddr;
 	sizedwords = ibdesc[0].sizedwords;
-	/*
-	 * Get a kernel mapping to the IB for monkey patching.
-	 * See the end of this function.
-	 */
-	entry = kgsl_sharedmem_find_region(dev_priv->process_priv, cmd,
-		sizedwords);
-	if (entry == NULL) {
-		KGSL_DRV_ERR(device, "Bad ibdesc: gpuaddr 0x%x size %d\n",
-			     cmd, sizedwords);
-		result = -EINVAL;
-		goto error;
-	}
-	/*
-	 * This will only map memory if it exists, otherwise it will reuse the
-	 * mapping. And the 2d userspace reuses IBs so we likely won't create
-	 * too many mappings.
-	 */
-	if (kgsl_gpuaddr_to_vaddr(&entry->memdesc, cmd) == NULL) {
-		KGSL_DRV_ERR(device,
-			     "Cannot make kernel mapping for gpuaddr 0x%x\n",
-			     cmd);
-		result = -EINVAL;
-		goto error;
-	}
+
+	tmp.hostptr = (void *)*timestamp;
 
 	KGSL_CMD_INFO(device, "ctxt %d ibaddr 0x%08x sizedwords %d\n",
 		context->id, cmd, sizedwords);
@@ -465,25 +452,28 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	}
 	result = 0;
 
-	old_timestamp = z180_dev->current_timestamp;
+	index = z180_dev->current_timestamp % Z180_PACKET_COUNT;
 	z180_dev->current_timestamp++;
+	nextindex = z180_dev->current_timestamp % Z180_PACKET_COUNT;
 	*timestamp = z180_dev->current_timestamp;
 
 	z180_dev->ringbuffer.prevctx = context->id;
 
-	addcmd(&z180_dev->ringbuffer, old_timestamp, cmd + ofs, cnt);
+	addcmd(&z180_dev->ringbuffer, index, cmd + ofs, cnt);
 	kgsl_pwrscale_busy(device);
 
 	/* Make sure the next ringbuffer entry has a marker */
-	addmarker(&z180_dev->ringbuffer, z180_dev->current_timestamp);
+	addmarker(&z180_dev->ringbuffer, nextindex);
 
-	/* monkey patch the IB so that it jumps back to the ringbuffer */
-	kgsl_sharedmem_writel(&entry->memdesc,
-		      ((sizedwords + 1) * sizeof(unsigned int)),
-		      rb_gpuaddr(z180_dev, z180_dev->current_timestamp));
-	kgsl_sharedmem_writel(&entry->memdesc,
-			      ((sizedwords + 2) * sizeof(unsigned int)),
-			      nextcnt);
+	nextaddr = z180_dev->ringbuffer.cmdbufdesc.gpuaddr
+		+ rb_offset(nextindex);
+
+	tmp.hostptr = (void *)(tmp.hostptr +
+			(sizedwords * sizeof(unsigned int)));
+	tmp.size = 12;
+
+	kgsl_sharedmem_writel(&tmp, 4, nextaddr);
+	kgsl_sharedmem_writel(&tmp, 8, nextcnt);
 
 	/* sync memory before activating the hardware for the new command*/
 	mb();
@@ -593,8 +583,6 @@ static int z180_stop(struct kgsl_device *device)
 {
 	device->ftbl->irqctrl(device, 0);
 	z180_idle(device, KGSL_TIMEOUT_DEFAULT);
-
-	del_timer_sync(&device->idle_timer);
 
 	kgsl_mmu_stop(device);
 
